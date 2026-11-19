@@ -27,7 +27,7 @@ OUTSTRIP = "#EFE8DA"
 
 # how far above its centre each kind of control gets its label
 LABEL_DY = {"knobH": 12.4, "knobL": 10.2, "knob": 7.4, "knobS": 6.4, "trim": 5.0,
-            "sw2": 7.2, "sw3": 9.6, "btn": 5.6, "in": 5.6, "out": 5.6, "light": 2.8, "disp": 0}
+            "sw2": 7.2, "sw3": 9.6, "latch": 0, "text": 0, "btn": 5.6, "in": 5.6, "out": 5.6, "light": 2.8, "disp": 0}
 LABEL_SIZE = {"in": JACK, "out": JACK}
 
 # ---------------------------------------------------------------------------
@@ -40,160 +40,112 @@ C3 = [10.16, 25.4, 40.64]                 # 10 HP, 3 columns
 C4_12 = [9.0, 23.0, 37.96, 51.96]         # 12 HP, 4 columns
 A10 = [14.5, 36.3]                        # 10 HP audio pairs
 
+# ---- Vinyl Countdown: 32 HP, seven sections in record order -------------
+VC = [5.0 + 10.9 + 21.8 * i for i in range(7)]
+SECTIONS = [("LATHE", "#C9C2B4"), ("RIAA", "#7FB8A4"), ("PRESSING", "#8FB3D9"), ("GROOVE", "#D9774B"),
+            ("STYLUS", "#B7A3D9"), ("PLATTER", "#E8B04A"), ("WRECK", "#E0605A")]
+vc = []
+SEC_IDS = ["LATHE", "RIAA", "PRESS", "GROOVE", "STYLUS", "PLATTER", "WRECK"]
+for i, (nm, col) in enumerate(SECTIONS):
+    vc.append(("text", f"{SEC_IDS[i]}_NAME", VC[i], 15.6, nm, (3.2, col)))
+    vc.append(("latch", f"{SEC_IDS[i]}_ON", VC[i], 20.8, "", None))
+x = VC
+vc += [
+    # LATHE
+    ("knobS", "DRIVE", x[0], 32.5, "DRIVE", None),
+    ("knobS", "ELLIPTIC", x[0], 46.5, "ELLIPTIC", None),
+    ("knobS", "HF", x[0], 60.5, "HF LIMIT", None),
+    ("knobS", "ECHO", x[0], 74.5, "ECHO", None),
+    ("light", "HF_LIGHT", x[0], 82.5, "", None),
+    ("in", "DRIVE_IN", x[0], 93.5, "DRIVE", None),
+    ("in", "ECHO_IN", x[0], 105.5, "ECHO", None),
+    # RIAA
+    ("knobL", "CUT", x[1], 36.0, "CUT", None),
+    ("knobL", "PLAY", x[1], 62.0, "PLAY", None),
+    ("disp", "RIAA_DISP", x[1] - 9.6, 73.0, "", (19.2, 9.0)),
+    ("in", "CUT_IN", x[1], 93.5, "CUT", None),
+    ("in", "PLAY_IN", x[1], 105.5, "PLAY", None),
+    # PRESSING
+    ("knobL", "GEN", x[2], 36.0, "GENERATION", None),
+    ("knobL", "WEAR", x[2], 62.0, "WEAR", None),
+    ("in", "GEN_IN", x[2], 93.5, "GEN", None),
+    ("in", "WEAR_IN", x[2], 105.5, "WEAR", None),
+    # GROOVE (inner groove)
+    ("knobL", "RADIUS", x[3], 36.0, "RADIUS", None),
+    ("knobS", "TRACK", x[3], 55.0, "TRACK", None),
+    ("knobS", "SIDE", x[3], 69.5, "SIDE", None),
+    ("btn", "SIDE_PLAY", x[3] - 3.6, 81.5, "", None),
+    ("text", "SIDE_PLAY_T", x[3] + 0.6, 82.6, "PLAY", (2.9, "#A39C92", "start")),
+    ("in", "RADIUS_IN", x[3], 93.5, "RADIUS", None),
+    ("in", "SIDE_PLAY_IN", x[3], 105.5, "PLAY", None),
+    # STYLUS
+    ("sw3", "TIP", x[4] - 3.0, 33.5, "", ["CON", "ELL", "SHI"]),
+    ("text", "TIP_T", x[4] + 0.6, 27.6, "TIP", (3.2, "#EFE8DA", "start")),
+    ("knobS", "LOAD", x[4], 49.5, "LOAD", None),
+    ("knobS", "AZIMUTH", x[4], 63.0, "AZIMUTH", None),
+    ("knobS", "VERT", x[4], 76.5, "VERTICAL", None),
+    ("in", "AZIMUTH_IN", x[4], 93.5, "AZIM", None),
+    ("in", "VERT_IN", x[4], 105.5, "VERT", None),
+    # PLATTER
+    ("knobL", "OFFSET", x[5], 36.0, "OFFSET", None),
+    ("sw3", "RPM", x[5] - 3.0, 57.0, "RPM", ["33", "45", "78"]),
+    ("knobS", "BEATS", x[5], 74.0, "BEATS", None),
+    ("light", "REV_LIGHT", x[5], 82.5, "", None),
+    ("in", "OFFSET_IN", x[5], 93.5, "OFFSET", None),
+    ("out", "WOW_OUT", x[5], 105.5, "WOW", None),
+    # WRECK (trainwreck)
+    ("knobS", "DRIFT", x[6], 32.5, "DRIFT", None),
+    ("knobS", "SLOP", x[6], 46.5, "SLOP", None),
+    ("knobS", "WOFFSET", x[6], 60.5, "OFFSET", None),
+    ("knobS", "XFADE", x[6], 74.5, "XFADE", None),
+    ("btn", "SYNC", x[6] - 3.6, 82.5, "", None),
+    ("light", "NUDGE_LIGHT", x[6] + 3.6, 82.5, "", None),
+    ("in", "XFADE_IN", x[6], 93.5, "XFADE", None),
+    ("in", "SYNC_IN", x[6], 105.5, "SYNC", None),
+    # bottom row
+    ("in", "IN_L", x[0], 118.0, "IN L", None),
+    ("in", "IN_R", x[1], 118.0, "IN R", None),
+    ("in", "CLOCK_IN", x[2], 118.0, "CLOCK", None),
+    ("in", "B_L", x[3], 118.0, "B L", None),
+    ("in", "B_R", x[4], 118.0, "B R", None),
+    ("out", "OUT_L", x[5], 118.0, "OUT L", None),
+    ("out", "OUT_R", x[6], 118.0, "OUT R", None),
+]
 MODULES = {
-    "Platter": dict(hp=10, accent="#E8B04A", sub="off-centre wow", items=[
-        ("knobL", "OFFSET", 14.5, 31.0, "OFFSET", None),
-        ("knobL", "RADIUS", 36.3, 31.0, "RADIUS", None),
-        ("sw3", "RPM", 25.4, 57.0, "RPM", ["33", "45", "78"]),
-        ("in", "OFFSET_IN", C3[0], 72.0, "OFFSET", None),
-        ("in", "RADIUS_IN", C3[1], 72.0, "RADIUS", None),
-        ("in", "RESET_IN", C3[2], 72.0, "RESET", None),
-        ("out", "WOW_OUT", C3[0], 88.0, "WOW", None),
-        ("out", "REV_OUT", C3[1], 88.0, "REV", None),
-        ("out", "PHASE_OUT", C3[2], 88.0, "PHASE", None),
-        ("in", "IN_L", A10[0], 104.0, "IN L", None),
-        ("in", "IN_R", A10[1], 104.0, "IN R", None),
-        ("out", "OUT_L", A10[0], 118.0, "OUT L", None),
-        ("out", "OUT_R", A10[1], 118.0, "OUT R", None),
-    ], marks=[("EDGE", 30.0, 42.6, "middle"), ("LABEL", 43.0, 42.6, "middle")]),
-
-    "InnerGroove": dict(hp=12, title="Inner Groove", accent="#D9774B", sub="edge to label", items=[
-        ("knobH", "RADIUS", 30.48, 34.0, "RADIUS", None),
-        ("sw3", "STYLUS", 12.0, 62.0, "STYLUS", ["CON", "ELL", "SHI", "<"]),
-        ("knob", "TRACK", 27.0, 62.0, "TRACK", None),
-        ("knob", "CUT", 41.5, 62.0, "CUT", None),
-        ("sw2", "RPM", 52.5, 62.0, "RPM", ["33", "45"]),
-        ("knob", "SIDE", 13.0, 80.0, "SIDE", None),
-        ("btn", "PLAY", 30.48, 80.0, "PLAY", None),
-        ("light", "MIST", 48.0, 80.0, "MISTRACK", None),
-        ("in", "RADIUS_IN", C4_12[0], 96.0, "RADIUS", None),
-        ("in", "PLAY_IN", C4_12[1], 96.0, "PLAY", None),
-        ("in", "RESET_IN", C4_12[2], 96.0, "RESET", None),
-        ("out", "POS_OUT", C4_12[3], 96.0, "POS", None),
-        ("in", "IN_L", C4_12[0], 112.0, "IN L", None),
-        ("in", "IN_R", C4_12[1], 112.0, "IN R", None),
-        ("out", "OUT_L", C4_12[2], 112.0, "OUT L", None),
-        ("out", "OUT_R", C4_12[3], 112.0, "OUT R", None),
-    ], marks=[("EDGE", 15.2, 46.6, "middle"), ("LABEL", 45.8, 46.6, "middle")]),
-
-    "Lathe": dict(hp=14, accent="#C9C2B4", sub="cutting room", items=[
-        ("knobL", "DRIVE", 13.0, 31.0, "DRIVE", None),
-        ("knobL", "ELLIPTIC", 35.56, 31.0, "ELLIPTIC", None),
-        ("knobL", "HF", 58.1, 31.0, "HF LIMIT", None),
-        ("light", "HF_LIGHT", 66.6, 22.0, "", None),
-        ("knob", "ECHO", 11.0, 55.0, "ECHO", None),
-        ("sw2", "REVS", 26.0, 55.0, "REVS", ["1", "2"]),
-        ("sw3", "RPM", 41.5, 55.0, "RPM", ["33", "45", "78"]),
-        ("knob", "BEATS", 60.1, 55.0, "BEATS", None),
-        ("in", "DRIVE_IN", 10.5, 76.0, "DRIVE", None),
-        ("in", "ELLIPTIC_IN", 27.2, 76.0, "ELLIPT", None),
-        ("in", "HF_IN", 43.9, 76.0, "HF", None),
-        ("in", "ECHO_IN", 60.6, 76.0, "ECHO", None),
-        ("in", "CLOCK_IN", 10.5, 93.0, "CLOCK", None),
-        ("out", "WET_L", 43.9, 93.0, "ECHO L", None),
-        ("out", "WET_R", 60.6, 93.0, "ECHO R", None),
-        ("in", "IN_L", 10.5, 110.0, "IN L", None),
-        ("in", "IN_R", 27.2, 110.0, "IN R", None),
-        ("out", "OUT_L", 43.9, 110.0, "OUT L", None),
-        ("out", "OUT_R", 60.6, 110.0, "OUT R", None),
-    ]),
-
-    "Riaa": dict(hp=12, title="RIAA Sandwich", accent="#7FB8A4", sub="", items=[
-        ("knobL", "CUT", 13.5, 30.0, "CUT", None),
-        ("knobL", "PLAY", 47.46, 30.0, "PLAY", None),
-        ("disp", "DISP", 5.0, 42.0, "", (50.96, 9.0)),
-        ("knob", "DRIVE", 16.0, 64.0, "DRIVE", None),
-        ("knob", "MIX", 44.96, 64.0, "MIX", None),
-        ("out", "SEND_L", C4_12[0], 82.0, "SEND L", None),
-        ("out", "SEND_R", C4_12[1], 82.0, "SEND R", None),
-        ("in", "RTN_L", C4_12[2], 82.0, "RTN L", None),
-        ("in", "RTN_R", C4_12[3], 82.0, "RTN R", None),
-        ("in", "DRIVE_IN", C4_12[0], 97.5, "DRIVE", None),
-        ("in", "MIX_IN", C4_12[1], 97.5, "MIX", None),
-        ("in", "CUT_IN", C4_12[2], 97.5, "CUT", None),
-        ("in", "PLAY_IN", C4_12[3], 97.5, "PLAY", None),
-        ("in", "IN_L", C4_12[0], 113.0, "IN L", None),
-        ("in", "IN_R", C4_12[1], 113.0, "IN R", None),
-        ("out", "OUT_L", C4_12[2], 113.0, "OUT L", None),
-        ("out", "OUT_R", C4_12[3], 113.0, "OUT R", None),
-    ]),
-
-    "Trainwreck": dict(hp=12, accent="#E0605A", sub="two decks", items=[
-        ("knobL", "DRIFT", 13.0, 31.0, "DRIFT", None),
-        ("knobL", "SLOP", 47.96, 31.0, "SLOP", None),
-        ("disp", "DISP", 22.5, 25.5, "", (15.96, 11.0)),
-        ("knob", "OFFSET", 11.0, 55.0, "OFFSET", None),
-        ("knobL", "XFADE", 30.48, 55.0, "A  XFADE  B", None),
-        ("btn", "SYNC", 50.5, 55.0, "SYNC", None),
-        ("sw2", "RANGE", 10.0, 72.5, "", ["LATE", "BOTH"]),
-        ("light", "NUDGE_LIGHT", 44.0, 72.5, "", None),
-        ("out", "NUDGE_OUT", C4_12[3], 72.5, "NUDGE", None),
-        ("in", "DRIFT_IN", C4_12[0], 87.0, "DRIFT", None),
-        ("in", "XFADE_IN", C4_12[1], 87.0, "XFADE", None),
-        ("in", "SYNC_IN", C4_12[2], 87.0, "SYNC", None),
-        ("out", "OFFSET_OUT", C4_12[3], 87.0, "OFFSET", None),
-        ("in", "A_L", C4_12[0], 102.0, "A L", None),
-        ("in", "A_R", C4_12[1], 102.0, "A R", None),
-        ("in", "B_L", C4_12[2], 102.0, "B L", None),
-        ("in", "B_R", C4_12[3], 102.0, "B R", None),
-        ("out", "OUT_L", C4_12[0], 117.0, "OUT L", None),
-        ("out", "OUT_R", C4_12[1], 117.0, "OUT R", None),
-        ("out", "BOUT_L", C4_12[2], 117.0, "B L", None),
-        ("out", "BOUT_R", C4_12[3], 117.0, "B R", None),
-    ]),
-
-    "Stylus": dict(hp=10, accent="#B7A3D9", sub="cartridge", items=[
-        ("knobL", "LOAD", 14.5, 31.0, "LOAD", None),
-        ("knobL", "AZIMUTH", 36.3, 31.0, "AZIMUTH", None),
-        ("knob", "XTALK", 14.5, 54.0, "XTALK", None),
-        ("knob", "VERT", 36.3, 54.0, "VERTICAL", None),
-        ("sw2", "TYPE", 22.4, 70.0, "", ["MM", "MC"]),
-        ("in", "LOAD_IN", C3[0], 86.0, "LOAD", None),
-        ("in", "AZIMUTH_IN", C3[1], 86.0, "AZIM", None),
-        ("in", "VERT_IN", C3[2], 86.0, "VERT", None),
-        ("in", "IN_L", A10[0], 102.0, "IN L", None),
-        ("in", "IN_R", A10[1], 102.0, "IN R", None),
-        ("out", "OUT_L", A10[0], 117.0, "OUT L", None),
-        ("out", "OUT_R", A10[1], 117.0, "OUT R", None),
-    ]),
-
-    "Pressing": dict(hp=8, accent="#8FB3D9", sub="", items=[
-        ("knobL", "GEN", 20.32, 32.0, "GENERATION", None),
-        ("knobL", "WEAR", 20.32, 60.0, "WEAR", None),
-        ("in", "GEN_IN", 10.16, 82.0, "GEN", None),
-        ("in", "WEAR_IN", 30.48, 82.0, "WEAR", None),
-        ("in", "IN_L", 10.16, 99.0, "IN L", None),
-        ("in", "IN_R", 30.48, 99.0, "IN R", None),
-        ("out", "OUT_L", 10.16, 116.0, "OUT L", None),
-        ("out", "OUT_R", 30.48, 116.0, "OUT R", None),
-    ], marks=[("LACQUER", 6.0, 43.4, "start"), ("LATE", 34.64, 43.4, "end"),
-              ("FRESH", 6.0, 71.4, "start"), ("WORN", 34.64, 71.4, "end")]),
+    "VinylCountdown": dict(hp=32, title="Vinyl Countdown", accent="#E8B04A", items=vc, columns=VC,
+                           title_y=8.4, title_size=3.6, logo=(VC[3], 125.6)),
 }
 
-# Scratch: 16 HP, 8 step knobs
-SX = [8.0 + i * 9.32 for i in range(8)]
-S6 = [8.0, 21.06, 34.12, 47.16, 60.22, 73.28]
-scr = [("disp", "DISP", 4.0, 15.5, "", (73.28, 12.5))]
+# ---- Scratch: 24 HP ----------------------------------------------------------
+SX = [8.5 + 14.99 * i for i in range(8)]
+scr = [("disp", "DISP", 5.0, 15.0, "", (111.92, 18.0))]
 for i in range(8):
-    scr.append(("knobS", f"STEP{i + 1}", SX[i], 40.0, str(i + 1), None))
-    scr.append(("light", f"STEP{i + 1}_LIGHT", SX[i], 47.0, "", None))
+    scr.append(("knobS", f"STEP{i + 1}", SX[i], 45.0, str(i + 1), None))
+    scr.append(("light", f"STEP{i + 1}_LIGHT", SX[i], 51.5, "", None))
 scr += [
-    ("knobL", "DEPTH", 13.5, 63.0, "DEPTH", None),
-    ("knob", "CHANCE", 33.0, 63.0, "CHANCE", None),
-    ("knob", "BACK", 50.0, 63.0, "BACK", None),
-    ("knob", "STEPS", 67.0, 63.0, "STEPS", None),
-    ("in", "CLOCK_IN", S6[0], 86.0, "CLOCK", None),
-    ("in", "RESET_IN", S6[1], 86.0, "RESET", None),
-    ("in", "DEPTH_IN", S6[2], 86.0, "DEPTH", None),
-    ("in", "CHANCE_IN", S6[3], 86.0, "CHANCE", None),
-    ("out", "HAND_OUT", S6[4], 86.0, "HAND", None),
-    ("out", "FADER_OUT", S6[5], 86.0, "FADER", None),
-    ("in", "IN_L", S6[0], 112.0, "IN L", None),
-    ("in", "IN_R", S6[1], 112.0, "IN R", None),
-    ("out", "OUT_L", S6[4], 112.0, "OUT L", None),
-    ("out", "OUT_R", S6[5], 112.0, "OUT R", None),
+    ("sw3", "SOURCE", 7.5, 67.0, "SOURCE", ["LIVE", "GRAB", "WAV"]),
+    ("btn", "GRAB", 25.5, 67.0, "GRAB", None),
+    ("knob", "CUE", 39.5, 67.0, "CUE", None),
+    ("knob", "BACK", 54.0, 67.0, "BACK", None),
+    ("knob", "GESTURE", 70.0, 67.0, "GESTURE", None),
+    ("knob", "LENGTH", 88.0, 67.0, "LENGTH", None),
+    ("knobL", "DEPTH", 107.0, 67.0, "DEPTH", None),
+    ("knobL", "HUMAN", 13.0, 88.0, "HUMAN", None),
+    ("knobL", "SLOPPY", 34.0, 88.0, "SLOPPY", None),
+    ("knob", "CHANCE", 54.0, 88.0, "CHANCE", None),
+    ("knob", "STEPS", 69.0, 88.0, "STEPS", None),
+    ("knob", "CURVE", 84.0, 88.0, "CURVE", None),
+    ("sw2", "MODE", 96.5, 88.0, "", ["INS", "OVER"]),
+    ("knob", "DUCK", 113.0, 88.0, "DUCK", None),
 ]
-MODULES["Scratch"] = dict(hp=16, accent="#E6C84F", sub="gesture sequencer", items=scr)
+for i, (k, n) in enumerate([("CLOCK_IN", "CLOCK"), ("RESET_IN", "RESET"), ("TRIG_IN", "TRIG"), ("GEST_IN", "GEST"),
+                            ("GRAB_IN", "GRAB"), ("CUE_IN", "CUE"), ("DEPTH_IN", "DEPTH"), ("HUMAN_IN", "HUMAN")]):
+    scr.append(("in", k, SX[i], 104.5, n, None))
+for i, k, n, kind in [(0, "IN_L", "IN L", "in"), (1, "IN_R", "IN R", "in"), (3, "END_OUT", "END", "out"),
+                      (4, "HAND_OUT", "HAND", "out"), (5, "FADER_OUT", "FADER", "out"),
+                      (6, "OUT_L", "OUT L", "out"), (7, "OUT_R", "OUT R", "out")]:
+    scr.append((kind, k, SX[i], 118.5, n, None))
+MODULES["Scratch"] = dict(hp=24, accent="#E6C84F", items=scr, logo=((SX[1] + SX[3]) / 2, 125.6))
 
 # ---------------------------------------------------------------------------
 fonts = {}
@@ -230,11 +182,24 @@ def panel(name, m):
         add(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{GROOVE}" stroke-width="0.25"/>')
     # title + label-coloured dot (a record label)
     title = m.get("title", name)
-    tsize = 5.2 if len(title) < 12 else 4.4
-    add(f'<circle cx="7.6" cy="9.7" r="2.6" fill="{acc}"/><circle cx="7.6" cy="9.7" r="0.55" fill="{BG}"/>')
-    add(text(title, 11.6, 11.4, tsize, FONT_BOLD, INK, anchor="start", spacing=0.02))
+    tsize = m.get("title_size", 5.2 if len(title) < 12 else 4.4)
+    ty = m.get("title_y", 11.4)
+    add(f'<circle cx="7.6" cy="{ty - 1.7}" r="{tsize * 0.5}" fill="{acc}"/><circle cx="7.6" cy="{ty - 1.7}" r="0.5" fill="{BG}"/>')
+    add(text(title, 7.6 + tsize * 0.8, ty, tsize, FONT_BOLD, INK, anchor="start", spacing=0.02))
+    cols = m.get("columns")
+    if cols:
+        for i in range(1, len(cols)):
+            xx = (cols[i - 1] + cols[i]) / 2
+            add(f'<line x1="{xx}" y1="12.0" x2="{xx}" y2="112.0" stroke="#34302E" stroke-width="0.35"/>')
 
     for kind, ident, x, y, label, extra in m["items"]:
+        if kind == "text":
+            size, col = extra[0], extra[1]
+            anchor = extra[2] if len(extra) > 2 else "middle"
+            add(text(label, x, y, size, FONT_BOLD, col, anchor=anchor))
+            continue
+        if kind == "latch":
+            continue
         if kind == "disp":
             w, h = extra
             add(f'<rect x="{x - 0.5}" y="{y - 0.5}" width="{w + 1.0}" height="{h + 1.0}" rx="0.9" '
@@ -271,7 +236,8 @@ def panel(name, m):
     open(path, "w").write(svg)
     sys.path.insert(0, HERE)
     import haer_logo
-    haer_logo.add_to_file(path, x=W / 2, y=126.0, cap=3.0, bg=BG)
+    lx, ly = m.get("logo", (W / 2, 126.0))
+    haer_logo.add_to_file(path, x=lx, y=ly, cap=3.0, bg=BG)
 
 
 def layout_header():

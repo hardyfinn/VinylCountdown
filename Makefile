@@ -11,7 +11,7 @@ include $(RACK_DIR)/plugin.mk
 endif
 
 # Offline engine checks + demo WAVs (no Rack needed): make test
-test/render: test/render.cpp src/VinylDSP.hpp
+test/render: test/render.cpp src/VinylDSP.hpp src/ScratchDSP.hpp
 	$(CXX) -O2 -std=c++17 test/render.cpp -o test/render
 .PHONY: test
 test: test/render

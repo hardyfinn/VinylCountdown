@@ -12,9 +12,8 @@ PX = 25.4 / 75.0
 KNOB = {"knobH": "RoundHugeBlackKnob", "knobL": "RoundLargeBlackKnob", "knob": "RoundBlackKnob",
         "knobS": "RoundSmallBlackKnob", "trim": "Trimpot"}
 SAMPLE = {
-    "Riaa": ["CUT  RIAA", "PLAY COLUMBIA"],
-    "Trainwreck": ["+12 ms", ""],
-    "Scratch": ["BABY CHIRP TRANS  --", "FLARE  --  CRAB ORBIT"],
+    "VinylCountdown": ["RIAA", "> COL"],
+    "Scratch": ["LIVE  needle 1.2 s ago", "1 --  2 --  3 BABY  4 --  5 --  6 CHIRP  7 --  8 CRAB"],
 }
 
 
@@ -41,7 +40,9 @@ for name, m in mp.MODULES.items():
             comp(g, base, x, y, -135 + 270 * (0.3 + 0.37 * ((i * 7) % 5) / 4))
         elif kind == "sw2": comp(g, "CKSS_0", x, y)
         elif kind == "sw3": comp(g, "CKSSThree_1", x, y)
-        elif kind == "btn": comp(g, "VCVBezel", x, y)
+        elif kind == "btn": comp(g, "VCVButton_0", x, y)
+        elif kind == "latch":
+            g.append(f'<circle cx="{x}" cy="{y}" r="2.0" fill="#2b2b2b" stroke="#000" stroke-width="0.3"/><circle cx="{x}" cy="{y}" r="1.2" fill="#f0e6c8" fill-opacity="0.9"/>')
         elif kind in ("in", "out"): comp(g, "PJ301M", x, y)
         elif kind == "light":
             g.append(f'<circle cx="{x}" cy="{y}" r="1.1" fill="{m["accent"]}" fill-opacity="0.8" stroke="#000" stroke-width="0.2"/>')
@@ -49,7 +50,7 @@ for name, m in mp.MODULES.items():
             lines = SAMPLE.get(name, ["", ""])
             w, h = extra
             for j, ln in enumerate(lines):
-                g.append(f'<text x="{x + w / 2}" y="{y + 4.0 + j * 4.2}" font-size="3.0" text-anchor="middle" '
+                g.append(f'<text x="{x + w / 2}" y="{y + 4.0 + j * 4.2}" font-size="2.6" text-anchor="middle" '
                          f'fill="{m["accent"]}" style="font-family:monospace;font-weight:bold">{ln}</text>')
     for sx in (mp.HP, W - 2 * mp.HP):
         for sy in (0.0, mp.H - mp.HP):

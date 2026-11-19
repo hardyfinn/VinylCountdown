@@ -1,7 +1,7 @@
 // Offline checks + demo WAVs for the VinylCountdown engines (no Rack needed).
 //   make test     (writes test/*.wav)
 // Checks the latency promise of every module, plus basic sanity.
-#include "../src/VinylDSP.hpp"
+#include "../src/ScratchDSP.hpp"
 #include <cstdio>
 #include <string>
 using namespace vinyl;
@@ -300,32 +300,96 @@ int main(int argc, char** argv) {
 		writeWav(dir + "/test/pressing-demo.wav", wav);
 	}
 
+	// ---------------- CHAIN (the Vinyl Countdown module, defaults) ----------------
+	printf("Vinyl Countdown chain\n");
+	{
+		Lathe la; RiaaPair rp; Pressing pr; InnerGroove ig; Stylus sty; Platter pl;
+		la.setSampleRate(SR); rp.setSampleRate(SR); pr.setSampleRate(SR); ig.setSampleRate(SR); sty.setSampleRate(SR); pl.setSampleRate(SR);
+		rp.set(0, 0);
+		Loop L; std::vector<float> wav; double ein = 0, eout = 0; bool nan = false;
+		for (int i = 0; i < SR * 16; i++) {
+			float t = i / (float) SR, a, b; L.next(t, a, b);
+			float l = a, r = b, wl, wr;
+			float radius = std::min(1.f, 0.3f + t / 16.f * 0.7f);   // play the side inward
+			la.process(l, r, 0.3f, 0.f, 0.f, 0.3f, 1, 60.f / 128.f * 4.f, l, r, wl, wr);
+			l = rp.cut[0].process(l) * 0.5f; r = rp.cut[1].process(r) * 0.5f;
+			pr.process(l, r, 0.3f, t > 8.f ? (t - 8.f) / 8.f : 0.f, l, r);
+			ig.process(l, r, radius, RPM_VALUES[0], 0, 0.5f, 0.3f, l, r);
+			sty.process(l, r, false, 0.4f, 0.25f, 0.f, 0.f, l, r);
+			pl.process(l, r, 0.3f, R_OUTER - radius * (R_OUTER - R_INNER), RPM_VALUES[0], l, r);
+			l = rp.play[0].process(l * 2.f); r = rp.play[1].process(r * 2.f);
+			if (!std::isfinite(l)) nan = true;
+			if (i > SR && i < SR * 4) { ein += a * a; eout += l * l; }
+			wav.push_back(l); wav.push_back(r);
+		}
+		float db = 10 * std::log10(eout / ein);
+		printf("  level through the default chain: %+.1f dB\n", db);
+		check(!nan && std::fabs(db) < 4.f, "default chain keeps level within 4 dB");
+		writeWav(dir + "/test/vinylcountdown-demo.wav", wav);
+	}
+
 	// ---------------- SCRATCH ----------------
 	printf("Scratch\n");
 	{
-		Scratch s; s.setSampleRate(SR);
+		ScratchEngine s; s.setSampleRate(SR);
 		Rng r; double err = 0;
-		for (int i = 0; i < SR; i++) { float v = r.bi(), o1, o2; s.process(v, v, o1, o2); err += std::fabs(o1 - v); }
+		for (int i = 0; i < SR; i++) { float v = r.bi(), o1, o2; s.process(v, v, 0.8f, false, 0.f, false, o1, o2); err += std::fabs(o1 - v); }
 		check(err < 1e-6, "no gesture = live audio untouched, no latency");
-		// 8 steps of 16ths at 128 BPM, gestures cycle through all types
-		std::vector<float> wav; Loop L; Scratch d; d.setSampleRate(SR);
-		float step = 60.f / 128.f / 2.f;   // 8ths
-		int st = -1; bool nan = false; float peak = 0;
-		for (int i = 0; i < SR * 16; i++) {
-			float t = i / (float) SR, a, b, o1, o2; L.next(t, a, b);
-			int k = (int) (t / step);
+
+		// every gesture, LIVE source, finite and sane
+		bool ok = true;
+		for (int g = 1; g < NUM_SGESTURES; g++) {
+			ScratchEngine e; e.setSampleRate(SR); Loop L; float peak = 0;
+			for (int i = 0; i < SR * 3; i++) {
+				float t = i / (float) SR, a, b, o1, o2; L.next(t, a, b);
+				if (i == SR * 2) e.start(g, ScratchEngine::LIVE, 0.47f, 0.6f, 0.5f, 0.5f, 0.47f, 0.f, true);
+				e.process(a, b, 0.8f, false, 0.f, false, o1, o2);
+				if (!std::isfinite(o1)) ok = false;
+				if (i > SR * 2) peak = std::max(peak, std::fabs(o1));
+			}
+			if (peak > 15.f || peak < 0.05f) { ok = false; printf("  %s peak %.2f\n", SGESTURE_NAMES[g], peak); }
+		}
+		check(ok, "all 12 gestures play from LIVE, finite and sane");
+
+		// human: the same gesture performed twice is not identical
+		ScratchEngine h; h.setSampleRate(SR);
+		h.start(S_TRANSFORM, ScratchEngine::LIVE, 0.5f, 0.5f, 1.f, 1.f, 0.5f, 0.f, false);
+		auto f1 = h.fader; auto k1 = h.hand;
+		h.start(S_TRANSFORM, ScratchEngine::LIVE, 0.5f, 0.5f, 1.f, 1.f, 0.5f, 0.f, false);
+		bool differ = f1.size() != h.fader.size();
+		for (size_t i = 0; i < std::min(f1.size(), h.fader.size()); i++) differ |= std::fabs(f1[i].t - h.fader[i].t) > 1e-4f;
+		check(differ, "HUMAN/SLOPPY re-perform each gesture differently");
+		ScratchEngine c; c.setSampleRate(SR);
+		c.start(S_TRANSFORM, ScratchEngine::LIVE, 0.5f, 0.5f, 0.f, 0.f, 0.5f, 0.f, false);
+		bool exact = c.fader.size() == 16;
+		for (size_t i = 1; i < c.fader.size() && exact; i++) exact = std::fabs(c.fader[i].t - (i / 2) / 8.f - (i & 1 ? 0.07f : 0.f)) < 1e-5f;
+		check(exact, "HUMAN 0 + SLOPPY 0 = machine-exact");
+
+		// GRAB + onsets
+		ScratchEngine gb; gb.setSampleRate(SR); Loop L;
+		for (int i = 0; i < SR * 3; i++) { float t = i / (float) SR, a, b, o1, o2; L.next(t, a, b); gb.process(a, b, 0.8f, false, 0.f, false, o1, o2); }
+		auto rec = gb.grab(2.f);
+		printf("  grabbed %.2f s, %d hits found (2 s at 128 BPM: about 4 kicks + 4 hats)\n", rec ? rec->seconds() : 0.f, rec ? (int) rec->onsets.size() : 0);
+		check(rec && rec->onsets.size() >= 6 && rec->onsets.size() <= 14, "GRAB freezes audio and finds the hits");
+
+		// demo: 16 bars at 128 BPM 8ths. Bars 1-8 clean (HUMAN 0), 9-16 human + sloppy
+		std::vector<float> wav; ScratchEngine d; d.setSampleRate(SR); Loop L2;
+		float stepLen = 60.f / 128.f / 2.f;
+		const int pat[8] = {0, 0, S_BABY, 0, 0, S_CHIRP, 0, S_TRANSFORM};
+		const int pat2[8] = {0, S_FLARE, 0, S_CRAB, 0, S_ORBIT, S_TEAR, S_STAB};
+		int st = -1;
+		for (int i = 0; i < SR * 30; i++) {
+			float t = i / (float) SR, a, b, o1, o2; L2.next(t, a, b);
+			int k = (int) (t / stepLen);
 			if (k != st) {
 				st = k;
-				int g = (k % 4 == 3) ? 1 + (k / 4) % (NUM_GESTURES - 1) : G_OFF;
-				d.startStep(g, step, step * 2.f, 0.6f);
+				bool late = t > 15.f;
+				int g = (k / 8) % 2 ? pat2[k % 8] : pat[k % 8];
+				if (g) d.start(g, ScratchEngine::LIVE, stepLen, 0.55f, late ? 0.6f : 0.f, late ? 0.6f : 0.f, stepLen * 2.f, 0.f, true);
 			}
-			d.process(a, b, o1, o2);
-			if (!std::isfinite(o1)) nan = true;
-			peak = std::max(peak, std::fabs(o1));
+			d.process(a, b, 0.85f, false, 0.f, false, o1, o2);
 			wav.push_back(o1); wav.push_back(o2);
 		}
-		printf("  16 s of gestures: peak %.2f V\n", peak);
-		check(!nan && peak < 15.f, "gestures stay finite and sane");
 		writeWav(dir + "/test/scratch-demo.wav", wav);
 	}
 

@@ -5,16 +5,23 @@ a filter. Each one copies a physical part of making or playing a record.
 
 **House rule: every module works on live audio and adds at most 100 ms of latency.**
 
-| Module | What it does | Latency |
-|---|---|---|
-| **Platter** | Off-centre pressing wow: a pitch sway locked to the rotation. OFFSET (0-1 mm), RADIUS, 33/45/78. WOW out is the same wobble as 1 V/oct CV, plus a revolution trigger and phase. | fixed 5 ms |
-| **Inner Groove** | Needle position from the outer edge to the label: top-end loss, tracing distortion, mistracking splatter. STYLUS tip, TRACK, CUT level, 33/45. PLAY sweeps a whole side over SIDE minutes. | 0 |
-| **Lathe** | The cutting room: DRIVE (hot cut, treble saturates first), ELLIPTIC (bass to mono), HF LIMIT, ECHO (groove echo one or two revolutions late, from RPM or a CLOCK). | 0 |
-| **RIAA Sandwich** | Record EQ curves around a SEND/RETURN (or built-in DRIVE). CUT and PLAY curves: RIAA, Columbia, NAB, Decca FFRR, AES. Mismatch them to tilt the tone. | 0 |
-| **Trainwreck** | Two live decks that never quite beatmatch: B drifts, a DJ nudges it back, flams and phasing. LATE (A live) or BOTH (both 50 ms back). | ≤ 100 ms |
-| **Stylus** | Cartridge: MM load resonance or MC, crosstalk, azimuth lean, vertical (stereo-width) mistracking. | < 0.2 ms |
-| **Pressing** | GENERATION (lacquer to late pressing) and WEAR (dubplate played to death). Plain knobs, no memory. | 0 |
-| **Scratch** | 8-step scratch-gesture sequencer (baby, chirp, transformer, flare, crab, orbit, tear, scribble). Live audio passes straight through; a gesture step scratches the audio from BACK steps ago. HAND and FADER CV outs. | 0 (live path) |
+Two modules:
+
+**Vinyl Countdown** (32 HP): seven stages in record order, each with an on/off button.
+LATHE (hot cut DRIVE, ELLIPTIC mono bass, HF LIMIT, groove ECHO) -> RIAA cut curve ->
+PRESSING (GENERATION, WEAR) -> GROOVE (RADIUS, TRACK, SIDE + PLAY sweeps a whole side) ->
+STYLUS (TIP, LOAD, AZIMUTH, VERTICAL) -> PLATTER (off-centre OFFSET, RPM, BEATS) ->
+RIAA play curve -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
+RADIUS drives both the inner-groove loss and the wow; DRIVE is the cut level for lathe and groove.
+Latency: 0, plus 5 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
+
+**Scratch** (24 HP): a scratch sequencer that plays like a person. 12 gestures (baby, chirp,
+forward, transformer, 1- and 2-click flare, crab, orbit, tear, scribble, stab, drag) on 8 clocked
+steps or a TRIG input. HUMAN = drifting timing (early and late), speed and stroke changes;
+SLOPPY = messier fader work, scaled by how complex the gesture is. Sources: LIVE (rolling 8 s),
+GRAB (freeze recent audio) or a WAV (right-click or drag a file onto the module). Cues snap to hits.
+Live audio passes straight through between gestures. INSERT or OVER (with DUCK), fader CURVE,
+hamster option, HAND / FADER / END outputs.
 
 ## Build
 Every push builds an Apple Silicon `.vcvplugin` in GitHub Actions (see the

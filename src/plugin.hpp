@@ -7,13 +7,7 @@ using namespace rack;
 
 extern Plugin* pluginInstance;
 
-extern Model* modelPlatter;
-extern Model* modelInnerGroove;
-extern Model* modelLathe;
-extern Model* modelRiaa;
-extern Model* modelTrainwreck;
-extern Model* modelStylus;
-extern Model* modelPressing;
+extern Model* modelVinylCountdown;
 extern Model* modelScratch;
 
 // mm -> px
