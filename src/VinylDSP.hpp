@@ -245,8 +245,6 @@ struct InnerGroove {
 		outR = (mo - so) * g;
 	}
 };
-constexpr float InnerGroove::STYLUS_R[3];
-constexpr float InnerGroove::STYLUS_FC[3];
 
 // ============================================================================
 // LATHE: what the cutting room does to the music on the way to the record.
