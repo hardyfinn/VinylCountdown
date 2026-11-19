@@ -1,0 +1,25 @@
+{
+  "slug": "VinylCountdown",
+  "name": "VinylCountdown",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "brand": "Haer",
+  "author": "Haer",
+  "authorEmail": "",
+  "authorUrl": "",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "https://github.com/hardyfinn/VinylCountdown",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {"slug": "Platter", "name": "Platter", "description": "Off-centre pressing wow on live audio: a pitch sway locked to the record's rotation (fixed 5 ms latency), with the wow as 1 V/oct CV", "tags": ["Effect", "Delay"]},
+    {"slug": "InnerGroove", "name": "Inner Groove", "description": "Needle position from the outer edge to the label: tracing loss, tracing distortion and mistracking, with PLAY to sweep a whole side. No latency", "tags": ["Effect", "Filter", "Distortion"]},
+    {"slug": "Lathe", "name": "Lathe", "description": "The cutting room: hot cut, elliptic (mono bass) filter, HF limiter and groove echo from neighbouring grooves, clock-syncable. No latency", "tags": ["Effect", "Distortion", "Delay"]},
+    {"slug": "RiaaSandwich", "name": "RIAA Sandwich", "description": "Record EQ curves (RIAA, Columbia, NAB, Decca FFRR, AES) wrapped around a send/return or built-in drive; mismatched curves tilt the tone. No latency", "tags": ["Effect", "Equalizer", "Distortion"]},
+    {"slug": "Trainwreck", "name": "Trainwreck", "description": "Two live decks that never quite stay beatmatched: drift, DJ nudges and flams inside a 100 ms window", "tags": ["Effect", "Mixer", "Delay"]},
+    {"slug": "Stylus", "name": "Stylus", "description": "Cartridge physics: MM load resonance or MC, crosstalk, azimuth lean and vertical mistracking. Under 0.2 ms latency", "tags": ["Effect", "Filter", "Distortion"]},
+    {"slug": "Pressing", "name": "Pressing", "description": "Two macros: GENERATION (lacquer to late pressing) and WEAR (a dubplate played to death). No latency", "tags": ["Effect", "Noise", "Filter"]},
+    {"slug": "Scratch", "name": "Scratch", "description": "8-step scratch-gesture sequencer: live audio passes through untouched, gesture steps scratch the audio from a few steps ago", "tags": ["Effect", "Sequencer"]}
+  ]
+}
