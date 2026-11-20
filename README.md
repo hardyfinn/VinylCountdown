@@ -5,7 +5,7 @@ a filter. Each one copies a physical part of making or playing a record.
 
 **House rule: every module works on live audio and adds at most 100 ms of latency.**
 
-Four modules, in the order a record travels:
+Five modules, in the order a record travels:
 
 **Vinyl Countdown** (36 HP): eight stages in record order, each with an on/off button.
 LATHE (hot cut DRIVE, ELLIPTIC mono bass, HF LIMIT, groove ECHO) -> RIAA cut curve ->
@@ -27,7 +27,13 @@ PATH OK / ENC never decoded / DEC never encoded) -> GLUE (vari-mu AMOUNT, TIME).
 (8 boxes from phone to club stack, BREAKUP) -> ROOM (SIZE, DAMP, bass MODES, WALL = next door) ->
 EARS (DISTANCE, head ANGLE, PARTY = the morning after). The direct sound is never delayed.
 
-Studio and Listening Room also have CV A/B, BYPASS and presets, like Vinyl Countdown.
+**On Air** (24 HP): the record played on FM, simulated end to end. STATION (PROCESSING, ERA 70s/80s/90s,
+EU/US pre-emphasis + final clipper) -> stereo multiplex with 19 kHz pilot -> FM at ~768 kHz -> AIR (SIGNAL =
+carrier to noise, MULTIPATH, MOTION = picket fencing) + NEXT station (its own input, LEVEL, 100/200 kHz up)
+-> RADIO (TUNE, HIFI/CAR/CHEAP sets with stereo blend, high cut and soft mute; MONO). Latency under 1 ms.
+Right-click Eco mode halves the radio sample rate for less CPU.
+
+Studio, Listening Room and On Air also have CV A/B, BYPASS and presets, like Vinyl Countdown.
 
 **Scratch** (24 HP): a scratch sequencer that plays like a person. 12 gestures (baby, chirp,
 forward, transformer, 1- and 2-click flare, crab, orbit, tear, scribble, stab, drag) on 8 clocked

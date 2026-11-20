@@ -1,7 +1,7 @@
 {
   "slug": "VinylCountdown",
   "name": "VinylCountdown",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "license": "GPL-3.0-or-later",
   "brand": "Haer",
   "author": "Haer",
@@ -51,6 +51,16 @@
         "Effect",
         "Reverb",
         "Filter"
+      ]
+    },
+    {
+      "slug": "OnAir",
+      "name": "On Air",
+      "description": "A record played on FM radio, simulated end to end: broadcast processing by era, pre-emphasis and clipper, stereo multiplex with pilot, FM at about 768 kHz, multipath and motion (picket fencing), noise, a next station input 100/200 kHz away, and a receiver (tuning, IF filter, discriminator, pilot PLL, stereo blend, high cut). Two assignable CVs, bypass, presets",
+      "tags": [
+        "Effect",
+        "Distortion",
+        "Noise"
       ]
     }
   ]

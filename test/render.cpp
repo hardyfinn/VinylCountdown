@@ -3,6 +3,7 @@
 // Checks the latency promise of every module, plus basic sanity.
 #include "../src/ScratchDSP.hpp"
 #include "../src/ChainDSP.hpp"
+#include "../src/RadioDSP.hpp"
 #include <cstdio>
 #include <functional>
 #include <string>
@@ -495,6 +496,41 @@ int main(int argc, char** argv) {
 			  p.process(a, b, 0.5f, 0, false, a, b); sp.process(a, b, 0, 0.3f, a, b);
 			  float dl, dr, wl, wr; rm.process(a, b, 0.4f, 0.5f, 0.4f, false, dl, dr, wl, wr); e.process(dl, dr, wl, wr, 0.35f, 0.f, 0.f, x, y); (void) t1; }, 8.f);
 		  writeWav(dir + "/test/studio-room-demo.wav", o); }
+	}
+
+	{
+		printf("On Air (FM link)\n");
+		auto tone = [&](float sig, float mp, float motion, float tune, int set, float& sep, float& lvl, float& blend) {
+			FmLink f; f.setSampleRate(SR);
+			double a = 0, b = 0, in = 0;
+			for (int i = 0; i < SR * 2; i++) { float x = 2.5f * std::sin(2 * PI * 1000.f * i / SR), l, r;
+				f.process(x, 0, 0, 0, false, 0.f, 0, false, sig, mp, motion, 0.f, true, tune, set, false, l, r);
+				if (i > SR) { a += l * l; b += r * r; in += x * x; } }
+			sep = 10.f * (float) std::log10(b / a + 1e-12); lvl = 10.f * (float) std::log10(a / in); blend = f.blend;
+		};
+		float sep, lvl, bl;
+		tone(1.f, 0.f, 0.f, 0.f, 0, sep, lvl, bl);
+		printf("  strong signal: level %+.1f dB, separation %.1f dB\n", lvl, sep);
+		check(std::fabs(lvl) < 1.f && sep < -30.f, "strong signal: clean stereo");
+		tone(0.25f, 0.f, 0.f, 0.f, 1, sep, lvl, bl);
+		printf("  weak signal, car radio: blend %.2f, separation %.1f dB\n", bl, sep);
+		check(bl < 0.2f && sep > -3.f, "weak signal: the radio blends to mono");
+		// latency
+		{ FmLink f; f.setSampleRate(SR); std::vector<float> x, y; Rng r; float lp = 0;
+		  for (int i = 0; i < SR / 2; i++) { lp += 0.3f * (r.bi() - lp); float v = lp * 3.f, a, b; f.process(v, v, 0, 0, false, 0.f, 0, false, 1.f, 0, 0, 0, true, 0, 2, false, a, b); x.push_back(v); y.push_back(a); }
+		  int lag = bestLag(x, y, 200); printf("  latency %.2f ms\n", lag * 1000.f / SR); check(lag * 1000.f / SR < 1.f, "under 1 ms latency"); }
+		// demo: strong -> driving through town -> fringe -> drifting to the next station
+		{ FmLink f; f.setSampleRate(SR); Loop L; std::vector<float> wav;
+		  for (int i = 0; i < SR * 16; i++) {
+			  float t = i / (float) SR, a, b, l, r; L.next(t, a, b);
+			  float n = 2.f * std::sin(2 * PI * 330.f * t) * (std::fmod(t * 2.f, 1.f) < 0.5f ? 1.f : 0.3f);
+			  float sig = t < 4 ? 0.9f : (t < 8 ? 0.6f : (t < 11 ? 0.3f : 0.8f));
+			  float mp = (t >= 4 && t < 8) ? 0.8f : 0.1f, mo = (t >= 4 && t < 8) ? 0.6f : 0.f;
+			  float tune = t < 11 ? 0.f : std::min((t - 11.f) / 4.f, 1.f) * 200000.f;
+			  f.process(a, b, n, n, true, 0.6f, 1, false, sig, mp, mo, 0.8f, true, tune, t < 4 ? 2 : 1, false, l, r);
+			  wav.push_back(l); wav.push_back(r);
+		  }
+		  writeWav(dir + "/test/onair-demo.wav", wav); }
 	}
 
 	printf(fails ? "%d FAILED\n" : "all ok\n", fails);

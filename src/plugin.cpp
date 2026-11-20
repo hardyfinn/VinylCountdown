@@ -8,4 +8,5 @@ void init(Plugin* p) {
 	p->addModel(modelScratch);
 	p->addModel(modelStudio);
 	p->addModel(modelListeningRoom);
+	p->addModel(modelOnAir);
 }

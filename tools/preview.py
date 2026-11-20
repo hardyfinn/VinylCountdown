@@ -47,9 +47,11 @@ for name, m in mp.MODULES.items():
         elif kind == "light":
             g.append(f'<circle cx="{x}" cy="{y}" r="1.1" fill="{m["accent"]}" fill-opacity="0.8" stroke="#000" stroke-width="0.2"/>')
         elif kind == "disp":
-            demo = {"Studio": ["A > TAPE SAT +50%", "B > FLUTTER +50%"], "ListeningRoom": ["A > DISTANCE +50%", "B > SPEAKER +50%"]}
+            demo = {"OnAir": ["A > SIGNAL +50%", "B > TUNE +50%"], "Studio": ["A > TAPE SAT +50%", "B > FLUTTER +50%"], "ListeningRoom": ["A > DISTANCE +50%", "B > SPEAKER +50%"]}
             if name in demo and ident in ("A_DISP", "B_DISP"):
                 lines = [demo[name][0 if ident == "A_DISP" else 1]]
+            elif ident == "FREQ_DISP":
+                lines = ["FM 97.60", "SIG ||||  STEREO"]
             elif ident == "SPK_DISP":
                 lines = ["BOOKSHELF", "HI-FI"]
             else:

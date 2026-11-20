@@ -11,6 +11,7 @@ extern Model* modelVinylCountdown;
 extern Model* modelScratch;
 extern Model* modelStudio;
 extern Model* modelListeningRoom;
+extern Model* modelOnAir;
 
 // mm -> px
 inline Vec P(float x, float y) { return mm2px(Vec(x, y)); }

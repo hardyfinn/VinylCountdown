@@ -287,6 +287,50 @@ MODULES_CHAIN["ListeningRoom"] = dict(hp=20, title="Listening Room", accent="#7F
                                       boxes=lbox, band=(109.5, 122.8))
 MODULES.update(MODULES_CHAIN)
 
+# ---- On Air: 24 HP ------------------------------------------------------------
+W24 = 24 * HP
+X4W = [(W24 - 4 * 27.5) / 2 + 13.75 + 27.5 * i for i in range(4)]
+x = X4W
+oa = chain_sections(X4W[:3], [("STATION", "#E0605A", "STATION"), ("AIR", "#8FB3D9", "AIR"),
+                              ("NEXT", "#B7A3D9", "NEXT")])
+oa += [
+    ("text", "RADIO_NAME", x[3], 15.6, "RADIO", (3.2, "#E8B04A")),
+    ("knobL", "PROC", x[0], 36.0, "PROCESSING", None),
+    ("sw3", "ERA", x[0] - 4.0, 59.0, "ERA", ["70s", "80s", "90s"]),
+    ("sw2", "EMPH", x[0] - 4.0, 78.5, "", ["EU", "US"]),
+    ("text", "EMPH_T", x[0], 71.6, "EMPHASIS", (3.2, "#EFE8DA")),
+    ("knobL", "SIGNAL", x[1], 36.0, "SIGNAL", None),
+    ("knobS", "MULTIPATH", x[1], 55.0, "MULTIPATH", None),
+    ("knobS", "MOTION", x[1], 69.5, "MOTION", None),
+    ("knobL", "LEVEL", x[2], 36.0, "LEVEL", None),
+    ("sw2", "SPACING", x[2] - 4.0, 57.0, "", ["100k", "200k"]),
+    ("text", "SPACING_T", x[2], 49.6, "SPACING", (3.2, "#EFE8DA")),
+    ("disp", "FREQ_DISP", x[3] - 12.0, 19.0, "", (24.0, 11.0)),
+    ("knobL", "TUNE", x[3], 46.0, "TUNE", None),
+    ("sw3", "SET", x[3] - 4.0, 66.0, "SET", ["CHEAP", "CAR", "HIFI"]),
+    ("btn", "MONO", x[3] - 5.0, 80.0, "", None),
+    ("text", "MONO_T", x[3] - 1.6, 81.1, "MONO", (2.9, "#A39C92", "start")),
+]
+for tag, c0, col in (("A", 0, "#E8B04A"), ("B", 2, "#7FB8A4")):
+    a, b = x[c0], x[c0 + 1]
+    oa += [
+        ("text", f"{tag}_T", a - 6.5, 93.0, f"CV {tag}", (2.9, col)),
+        ("in", f"CV{tag}_IN", a - 6.5, 102.8, "", None),
+        ("disp", f"{tag}_DISP", a + 1.2, 88.4, "", (b + 11.5 - a - 1.2, 4.6)),
+        ("knobS", f"{tag}_DEST", (a + b) / 2 + 2.0, 104.2, "DEST", None),
+        ("trim", f"{tag}_AMT", b + 7.5, 104.6, "AMT", None),
+    ]
+oabox = [(x[0] - 13.0, 86.2, x[1] - x[0] + 26.0, 22.2, "#E8B04A"), (x[2] - 13.0, 86.2, x[3] - x[2] + 26.0, 22.2, "#7FB8A4")]
+JX = [W24 * (i + 0.5) / 6 for i in range(6)]
+for i, (k, ident, lab) in enumerate([("in", "IN_L", "IN L"), ("in", "IN_R", "IN R"), ("in", "NEXT_L", "NEXT L"),
+                                      ("in", "NEXT_R", "NEXT R"), ("out", "OUT_L", "OUT L"), ("out", "OUT_R", "OUT R")]):
+    oa.append((k, ident, JX[i], 118.0, lab, None))
+oa += [("text", "BYP_T", W24 - 21.5, 8.4, "BYPASS", (3.2, "#EFE8DA", "end")),
+       ("btn", "BYPASS", W24 - 15.0, 7.2, "", None)]
+MODULES["OnAir"] = dict(hp=24, title="On Air", accent="#E0605A", items=oa, columns=X4W,
+                        title_y=8.4, title_size=3.6, logo=((x[1] + x[2]) / 2, 125.6), col_end=85.0,
+                        boxes=oabox, band=(109.5, 122.8))
+
 # ---------------------------------------------------------------------------
 fonts = {}
 
