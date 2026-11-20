@@ -27,7 +27,7 @@ OUTSTRIP = "#EFE8DA"
 
 # how far above its centre each kind of control gets its label
 LABEL_DY = {"knobH": 12.4, "knobL": 10.2, "knob": 7.4, "knobS": 6.4, "trim": 5.0,
-            "sw2": 7.2, "sw3": 9.6, "latch": 0, "text": 0, "btn": 5.6, "in": 5.6, "out": 5.6, "light": 2.8, "disp": 0}
+            "sw2": 7.2, "sw3": 9.6, "latch": 0, "text": 0, "btn": 5.6, "in": 5.6, "out": 5.6, "light": 2.8, "disp": 0, "ring": 0}
 LABEL_SIZE = {"in": JACK, "out": JACK}
 
 # ---------------------------------------------------------------------------
@@ -111,9 +111,62 @@ vc += [
     ("out", "OUT_L", x[5], 118.0, "OUT L", None),
     ("out", "OUT_R", x[6], 118.0, "OUT R", None),
 ]
+
+# ---- Vinyl Countdown 2.2: 36 HP, eight sections, two assignable CVs ------
+# (vc above is the 2.1 layout; it is re-flowed into eight columns here)
+W36 = 36 * HP
+X8 = [(W36 - 8 * 21.6) / 2 + 10.8 + 21.6 * i for i in range(8)]
+S8 = [("LATHE", "#C9C2B4", "LATHE"), ("RIAA", "#7FB8A4", "RIAA"), ("PRESSING", "#8FB3D9", "PRESS"),
+      ("GROOVE", "#D9774B", "GROOVE"), ("STYLUS", "#B7A3D9", "STYLUS"), ("PLATTER", "#E8B04A", "PLATTER"),
+      ("PREAMP", "#E58FB0", "PREAMP"), ("WRECK", "#E0605A", "WRECK")]
+COLMAP = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7}
+DROP = {"DRIVE_IN","ECHO_IN","CUT_IN","PLAY_IN","GEN_IN","WEAR_IN","RADIUS_IN","SIDE_PLAY_IN",
+        "AZIMUTH_IN","VERT_IN","OFFSET_IN","XFADE_IN","SYNC_IN","WOW_OUT",
+        "IN_L","IN_R","CLOCK_IN","B_L","B_R","OUT_L","OUT_R"}
+vm = []
+for i, (nm, col, sid) in enumerate(S8):
+    vm.append(("text", f"{sid}_NAME", X8[i], 15.6, nm, (3.2, col)))
+    vm.append(("latch", f"{sid}_ON", X8[i], 20.8, "", None))
+for kind, ident, xx, y, label, extra in vc:
+    if ident in DROP or ident.endswith("_NAME") or ident.endswith("_ON"):
+        continue
+    ci = min(range(7), key=lambda k: abs(VC[k] - xx))
+    vm.append((kind, ident, xx - VC[ci] + X8[COLMAP[ci]], y, label, extra))
+px = X8[6]
+vm += [
+    ("knobL", "VALVE", px, 36.0, "VALVE", None),
+    ("knobS", "XFMR", px, 55.0, "STEP-UP", None),
+    ("knobS", "HUM", px, 69.5, "HUM", None),
+    ("sw2", "HZ", px - 4.0, 79.5, "", ["50", "60", "<"]),
+    ("btn", "GND", px + 5.2, 79.0, "", None),
+    ("text", "GND_T", px + 5.2, 84.6, "GND", (2.9, "#A39C92")),
+]
+A_COL, B_COL = "#E8B04A", "#7FB8A4"
+def cvblock(tag, c0, col):
+    xs = X8[c0:c0 + 4]
+    return [
+        ("text", f"{tag}_T", xs[0], 93.0, f"CV {tag}", (3.2, col)),
+        ("in", f"CV{tag}_IN", xs[0], 102.8, "", None),
+        ("disp", f"{tag}_DISP", xs[1] - 7.0, 88.4, "", (xs[3] - xs[1] + 12.0, 4.6)),
+        ("knobS", f"{tag}_DEST", (xs[1] + xs[2]) / 2, 104.2, "DEST", None),
+        ("knobS", f"{tag}_AMT", (xs[2] + xs[3]) / 2 + 4.0, 104.2, "AMOUNT", None),
+    ]
+vm += cvblock("A", 0, A_COL) + cvblock("B", 4, B_COL)
+bot = [("in", "IN_L", "IN L"), ("in", "IN_R", "IN R"), ("in", "B_L", "B L"), ("in", "B_R", "B R"),
+       ("in", "CLOCK_IN", "CLOCK"), ("out", "WOW_OUT", "WOW"), ("out", "OUT_L", "OUT L"), ("out", "OUT_R", "OUT R")]
+for i, (k, ident, lab) in enumerate(bot):
+    vm.append((k, ident, X8[i], 118.0, lab, None))
+vm += [
+    ("text", "BYP_T", W36 - 21.5, 8.4, "BYPASS", (3.2, "#EFE8DA", "end")),
+    ("btn", "BYPASS", W36 - 15.0, 7.2, "", None),
+]
+MOCK_BOXES = [(X8[0] - 9.6, 86.2, X8[3] - X8[0] + 19.2, 22.2, A_COL),
+              (X8[4] - 9.6, 86.2, X8[7] - X8[4] + 19.2, 22.2, B_COL)]
+
 MODULES = {
-    "VinylCountdown": dict(hp=32, title="Vinyl Countdown", accent="#E8B04A", items=vc, columns=VC,
-                           title_y=8.4, title_size=3.6, logo=(VC[3], 125.6)),
+    "VinylCountdown": dict(hp=36, title="Vinyl Countdown", accent="#E8B04A", items=vm, columns=X8,
+                           title_y=8.4, title_size=3.6, logo=((X8[3] + X8[4]) / 2, 125.6), col_end=85.0,
+                           boxes=MOCK_BOXES, band=(109.5, 122.8)),
 }
 
 # ---- Scratch: 24 HP ----------------------------------------------------------
@@ -190,7 +243,12 @@ def panel(name, m):
     if cols:
         for i in range(1, len(cols)):
             xx = (cols[i - 1] + cols[i]) / 2
-            add(f'<line x1="{xx}" y1="12.0" x2="{xx}" y2="112.0" stroke="#34302E" stroke-width="0.35"/>')
+            add(f'<line x1="{xx}" y1="12.0" x2="{xx}" y2="{m.get('col_end', 112.0)}" stroke="#34302E" stroke-width="0.35"/>')
+    for bx, by, bw, bh, bc in m.get("boxes", []):
+        add(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="1.6" fill="{bc}" fill-opacity="0.07" stroke="{bc}" stroke-opacity="0.75" stroke-width="0.4"/>')
+    if m.get("band"):
+        y0, y1 = m["band"]
+        add(f'<rect x="3.0" y="{y0}" width="{m["hp"] * HP - 6.0}" height="{y1 - y0}" rx="1.6" fill="#000" fill-opacity="0.35" stroke="#4A4542" stroke-width="0.35"/>')
 
     for kind, ident, x, y, label, extra in m["items"]:
         if kind == "text":
@@ -199,6 +257,9 @@ def panel(name, m):
             add(text(label, x, y, size, FONT_BOLD, col, anchor=anchor))
             continue
         if kind == "latch":
+            continue
+        if kind == "ring":
+            add(f'<circle cx="{x}" cy="{y}" r="{extra[1]}" fill="none" stroke="{extra[0]}" stroke-width="0.7" stroke-dasharray="1.2 0.8"/>')
             continue
         if kind == "disp":
             w, h = extra

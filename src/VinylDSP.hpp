@@ -15,6 +15,8 @@
 //   Stylus       cartridge physics: load resonance, crosstalk, azimuth,
 //                vertical mistracking (< 0.2 ms)
 //   Pressing     GENERATION (copy of a copy) and WEAR (dubplate wear) (0 latency)
+//   Preamp       valve phono stage: step-up transformer, valve drive, mains
+//                hum and a lifted ground lead (0 latency)
 //   Scratch      scratch-gesture sequencer: live audio passes straight through;
 //                a gesture step scratches the audio that just went past
 #pragma once
@@ -772,6 +774,93 @@ struct Scratch {
 		float sR = dc[1].highpass(buf[1].read(delay), gdc, 1.4f) * sFader;
 		outL = inL + (sL - inL) * sScr;
 		outR = inR + (sR - inR) * sScr;
+	}
+};
+
+
+// ============================================================================
+// PREAMP: the valve phono stage after the RIAA curve.
+//  HUM      mains hum (50 or 60 Hz plus harmonics), mixed in at the input so
+//           the valve and transformer colour it too.
+//  GND      the ground lead is off: the hum jumps up and the power supply's
+//           rectifier spikes leak in as a nasty buzz.
+//  STEP-UP  input transformer: bass saturates first (the core fills up), a
+//           small low-end lift, and the top end rolls off with a soft peak.
+//  VALVE    a 12AX7-style biased triode: asymmetric soft clipping (even
+//           harmonics), a slightly darker top as it is pushed.
+// Signals are Rack volts (+-5 V nominal). 0 latency.
+// ============================================================================
+struct Preamp {
+	float sr = 48000.f;
+	double ph = 0.0;
+	OnePole lowL[2];
+	SVF xf[2], buzzF;
+	OnePole hfV[2];
+	float dcX[2] = {0.f, 0.f}, dcY[2] = {0.f, 0.f};
+	float wob = 1.f, wobT = 1.f;
+	int wobN = 0;
+	Rng rng;
+	float sGnd = 0.f;
+	void setSampleRate(float s) { sr = s; }
+	void reset() {
+		ph = 0.0; for (int c = 0; c < 2; c++) { lowL[c].reset(); xf[c].reset(); hfV[c].reset(); dcX[c] = dcY[c] = 0.f; }
+		buzzF.reset(); sGnd = 0.f;
+	}
+	// valve, stepUp, hum: 0..1
+	inline void process(float inL, float inR, float valve, float stepUp, float hum, bool sixty, bool gndLifted,
+	                    float& outL, float& outR) {
+		float f0 = sixty ? 60.f : 50.f;
+		ph += f0 / sr;
+		if (ph >= 1.0) ph -= 1.0;
+		float a = 2.f * PI * (float) ph;
+		float h = 0.62f * std::sin(a) + 0.30f * std::sin(2.f * a + 0.4f) + 0.20f * std::sin(3.f * a + 1.1f)
+		        + 0.07f * std::sin(5.f * a + 0.3f);
+		// ground lift fades in over 30 ms (no click)
+		sGnd += coefFor(0.03f, sr) * ((gndLifted ? 1.f : 0.f) - sGnd);
+		// buzz: rectifier charging spikes twice per mains cycle, wobbling a little
+		float sa = std::fabs(std::sin(a));
+		float spike = std::max(0.f, sa - 0.9f) * 10.f;
+		spike *= spike;
+		if (--wobN <= 0) { wobN = (int) (sr * 0.05f); wobT = 0.75f + 0.5f * rng.uni(); }
+		wob += coefFor(0.08f, sr) * (wobT - wob);
+		float buzz = buzzF.bandpass(spike, svfG(1800.f, sr), 1.2f) * wob;
+		float humV = 0.35f * hum * hum + 0.55f * sGnd;
+		float buzzV = 2.2f * sGnd;
+		float in[2] = {inL, inR}, out[2];
+		const float humSide[2] = {1.f, 0.86f};
+		float kV = 1.f + 3.f * valve * valve;
+		float bias = 0.15f + 0.12f * valve;
+		float tb = std::tanh(bias);
+		float norm = 1.f / (kV * (1.f - tb * tb));
+		float wetV = std::min(1.f, valve * 3.f);
+		float gS = 1.f + 6.f * stepUp;
+		float xfFc = 40000.f - 26000.f * stepUp;
+		float aLow = 1.f - std::exp(-2.f * PI * 150.f / sr);
+		float aHf = 1.f - std::exp(-2.f * PI * (20000.f - 11000.f * valve) / sr);
+		float aDc = 1.f - std::exp(-2.f * PI * 8.f / sr);
+		for (int c = 0; c < 2; c++) {
+			float x = in[c] + (humV * h + buzzV * buzz) * humSide[c];
+			// step-up transformer
+			if (stepUp > 0.001f) {
+				float lo = lowL[c].lp(x, aLow);
+				float ln = lo * 0.2f;
+				float sat = std::tanh(gS * ln) / gS * (1.f + 0.3f * stepUp) * 5.f;
+				x = x - lo + sat;
+				x = xf[c].lowpass(x, svfG(xfFc, sr), 1.f / (0.75f + 0.6f * stepUp));
+			}
+			// valve
+			if (valve > 0.001f) {
+				float xn = x * 0.12f;
+				float v = (std::tanh(kV * xn + bias) - tb) * norm;
+				float y = xn + (v - xn) * wetV;
+				y = hfV[c].lp(y, aHf * 0.999f + 0.001f);
+				// remove the DC the bias makes
+				dcY[c] += aDc * (y - dcY[c]);
+				x = (y - dcY[c]) / 0.12f;
+			}
+			out[c] = x;
+		}
+		outL = out[0]; outR = out[1];
 	}
 };
 

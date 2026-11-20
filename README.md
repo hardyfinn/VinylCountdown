@@ -7,12 +7,16 @@ a filter. Each one copies a physical part of making or playing a record.
 
 Two modules:
 
-**Vinyl Countdown** (32 HP): seven stages in record order, each with an on/off button.
+**Vinyl Countdown** (36 HP): eight stages in record order, each with an on/off button.
 LATHE (hot cut DRIVE, ELLIPTIC mono bass, HF LIMIT, groove ECHO) -> RIAA cut curve ->
 PRESSING (GENERATION, WEAR) -> GROOVE (RADIUS, TRACK, SIDE + PLAY sweeps a whole side) ->
 STYLUS (TIP, LOAD, AZIMUTH, VERTICAL) -> PLATTER (off-centre OFFSET, RPM, BEATS) ->
-RIAA play curve -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
+RIAA play curve -> PREAMP (VALVE drive, STEP-UP transformer, mains HUM 50/60 Hz, GND lift buzz) -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
 RADIUS drives both the inner-groove loss and the wow; DRIVE is the cut level for lathe and groove.
+Two assignable CV inputs: CV A and CV B each have a DEST knob (any knob, the PLAY and nudge
+triggers, or a BYPASS gate), an AMOUNT attenuverter and a screen; a dashed ring shows the target.
+BYPASS (top right) passes the dry input straight through, with no delay; Randomize leaves it alone.
+Right-click > Presets has 20 starting points.
 Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
 
 **Scratch** (24 HP): a scratch sequencer that plays like a person. 12 gestures (baby, chirp,

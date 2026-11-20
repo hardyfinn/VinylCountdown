@@ -393,6 +393,45 @@ int main(int argc, char** argv) {
 		writeWav(dir + "/test/scratch-demo.wav", wav);
 	}
 
+	{
+		printf("Preamp\n");
+		auto rms = [](const std::vector<float>& v) { double a = 0; for (float x : v) a += x * x; return (float) std::sqrt(a / std::max<size_t>(v.size(), 1)); };
+		// silence in, no hum: silence out
+		Preamp p; p.setSampleRate(SR);
+		std::vector<float> o;
+		for (int i = 0; i < SR; i++) { float a, b; p.process(0, 0, 0.8f, 0.8f, 0.f, false, false, a, b); if (i > SR / 2) o.push_back(a); }
+		check(rms(o) < 1e-3f, "no hum, no input: silent");
+		// impulse at zero settings: no latency
+		Preamp z; z.setSampleRate(SR);
+		int pk = -1; float best = 0;
+		for (int i = 0; i < 64; i++) { float a, b; z.process(i == 10 ? 1.f : 0.f, 0, 0.f, 0.f, 0.f, false, false, a, b); if (std::fabs(a) > best) { best = std::fabs(a); pk = i; } }
+		check(pk == 10, "0 latency");
+		// hum level
+		Preamp h; h.setSampleRate(SR); o.clear();
+		for (int i = 0; i < SR; i++) { float a, b; h.process(0, 0, 0.f, 0.f, 1.f, false, false, a, b); o.push_back(a); }
+		float hr = rms(o);
+		printf("  HUM 100%%: %.3f V rms (%.1f dB re 5 V)\n", hr, 20.f * std::log10(hr / 5.f));
+		check(hr > 0.15f && hr < 0.4f, "hum at full is clearly audible but well under the music");
+		Preamp g; g.setSampleRate(SR); o.clear();
+		for (int i = 0; i < SR; i++) { float a, b; g.process(0, 0, 0.f, 0.f, 0.f, false, true, a, b); if (i > SR / 4) o.push_back(a); }
+		float gr = rms(o);
+		printf("  ground lifted: %.3f V rms\n", gr);
+		check(gr > 0.3f && gr < 1.5f, "lifted ground hums and buzzes");
+		// valve: small signals stay about the same level, loud ones squash with 2nd harmonic
+		for (float lvl : {0.5f, 5.f}) {
+			Preamp v; v.setSampleRate(SR);
+			std::vector<float> in, out;
+			for (int i = 0; i < SR; i++) { float x = lvl * std::sin(2 * PI * 220.f * i / SR), a, b; v.process(x, x, 0.8f, 0.f, 0.f, false, false, a, b); if (i > SR / 2) { in.push_back(x); out.push_back(a); } }
+			// 2nd harmonic by correlation
+			double c2s = 0, c2c = 0, c1 = 0;
+			for (size_t i = 0; i < out.size(); i++) { double ph = 2 * PI * 220.0 * (i + SR / 2 + 1) / SR; c2s += out[i] * std::sin(2 * ph); c2c += out[i] * std::cos(2 * ph); c1 += out[i] * std::sin(ph); }
+			float h2 = (float) (std::sqrt(c2s * c2s + c2c * c2c) / std::max(std::fabs(c1), 1e-9));
+			printf("  valve 80%%, %.1f V sine: gain %.2f, 2nd harmonic %.1f%%\n", lvl, rms(out) / rms(in), h2 * 100.f);
+			if (lvl < 1.f) check(std::fabs(rms(out) / rms(in) - 1.f) < 0.25f, "small signal about unity gain");
+			else check(h2 > 0.01f, "loud signal gets even harmonics");
+		}
+	}
+
 	printf(fails ? "%d FAILED\n" : "all ok\n", fails);
 	return fails ? 1 : 0;
 }
