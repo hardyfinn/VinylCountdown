@@ -13,7 +13,7 @@ PRESSING (GENERATION, WEAR) -> GROOVE (RADIUS, TRACK, SIDE + PLAY sweeps a whole
 STYLUS (TIP, LOAD, AZIMUTH, VERTICAL) -> PLATTER (off-centre OFFSET, RPM, BEATS) ->
 RIAA play curve -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
 RADIUS drives both the inner-groove loss and the wow; DRIVE is the cut level for lathe and groove.
-Latency: 0, plus 5 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
+Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
 
 **Scratch** (24 HP): a scratch sequencer that plays like a person. 12 gestures (baby, chirp,
 forward, transformer, 1- and 2-click flare, crab, orbit, tear, scribble, stab, drag) on 8 clocked

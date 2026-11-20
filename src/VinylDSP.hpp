@@ -5,7 +5,7 @@
 // adds more than 100 ms of latency. Nothing here speeds audio up or slows it
 // down for longer than a few milliseconds.
 //
-//   Platter      off-centre pressing wow (fixed 5 ms latency)
+//   Platter      off-centre pressing wow (fixed 6 ms latency)
 //   InnerGroove  stylus tracing loss, tracing distortion and mistracking as
 //                the needle moves from the outer edge to the label (0 latency)
 //   Lathe        cutting-room chain: hot cut, elliptic (mono bass) filter,
@@ -108,11 +108,11 @@ static const float R_INNER = 60.f;
 // the needle sees the groove speed up and slow down once per revolution. The
 // speed ratio is 1 + (offset / radius) * sin(angle). Live audio can do this
 // with a short delay line whose length swings by +-(offset/radius)/omega.
-// That is at most 4.8 ms (1 mm, label area, 33 rpm), so the latency is fixed
-// at 5 ms and never moves.
+// That is at most 5.7 ms (1.2 mm, label area, 33 rpm), so the latency is fixed
+// at 6 ms and never moves.
 // ============================================================================
 struct Platter {
-	static constexpr float LATENCY = 0.005f;   // seconds, fixed
+	static constexpr float LATENCY = 0.006f;   // seconds, fixed
 	float sr = 48000.f;
 	Ring buf[2];
 	double phase = 0.0;        // 0..1, one revolution
@@ -128,7 +128,7 @@ struct Platter {
 	}
 	void reset() { phase = 0.0; }
 
-	// offsetMm 0..1, radiusMm R_INNER..R_OUTER, rpm
+	// offsetMm 0..1.2, radiusMm R_INNER..R_OUTER, rpm
 	inline void process(float inL, float inR, float offsetMm, float radiusMm, float rpm, float& outL, float& outR) {
 		float a = coefFor(0.03f, sr);
 		sOffset += a * (offsetMm - sOffset);

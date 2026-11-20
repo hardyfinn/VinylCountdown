@@ -6,7 +6,7 @@
 // Shared physics: RADIUS drives both the inner-groove loss and the size of
 // the off-centre wow; DRIVE (the cut level) drives both the lathe and how
 // hard the groove is to trace; RPM sets all three speeds.
-// Latency: 0, plus 5 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
+// Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
 #include "plugin.hpp"
 namespace LV = layout::VinylCountdown;
 
@@ -84,7 +84,7 @@ struct VinylModule : Module {
 		configParam(AZIMUTH_PARAM, -1.f, 1.f, 0.f, "Azimuth (needle lean: one side late and duller, more crosstalk)", " deg", 0.f, 3.f);
 		configParam(VERT_PARAM, 0.f, 1.f, 0.f, "Vertical mistracking (stereo width distorts first)", "%", 0.f, 100.f);
 
-		configParam(OFFSET_PARAM, 0.f, 1.f, 0.3f, "Off-centre offset", " mm");
+		configParam(OFFSET_PARAM, 0.f, 1.f, 0.3f, "Off-centre offset", " mm", 0.f, 1.2f);  // knob 0..1 = 0..1.2 mm (2.1.1: +20%)
 		configSwitch(RPM_PARAM, 0.f, 2.f, 0.f, "Speed", {"33 rpm", "45 rpm", "78 rpm"});
 		configParam(BEATS_PARAM, 1.f, 8.f, 4.f, "Beats per revolution (when CLOCK is patched)");
 		paramQuantities[BEATS_PARAM]->snapEnabled = true;
@@ -105,7 +105,7 @@ struct VinylModule : Module {
 		configInput(SIDE_PLAY_INPUT, "Play side / stop (trigger toggles)");
 		configInput(AZIMUTH_INPUT, "Azimuth CV (+-5 V = full lean)");
 		configInput(VERT_INPUT, "Vertical CV (+10%/V)");
-		configInput(OFFSET_INPUT, "Offset CV (+0.1 mm/V)");
+		configInput(OFFSET_INPUT, "Offset CV (+0.12 mm/V)");
 		configInput(XFADE_INPUT, "Crossfader CV (+10%/V)");
 		configInput(SYNC_INPUT, "Nudge deck B now (trigger)");
 		configInput(IN_L_INPUT, "Left (or mono)");
@@ -200,7 +200,7 @@ struct VinylModule : Module {
 		// PLATTER
 		bool revTick = false;
 		if (on(5)) {
-			float off = cv01(OFFSET_PARAM, OFFSET_INPUT);
+			float off = 1.2f * cv01(OFFSET_PARAM, OFFSET_INPUT);
 			platter.process(l, r, off, radiusMm, rpm, l, r);
 			revTick = platter.revTick;
 			outputs[WOW_OUTPUT].setVoltage(platter.wowVolts());

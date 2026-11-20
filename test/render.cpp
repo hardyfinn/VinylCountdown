@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 		for (int i = 0; i < SR / 2; i++) { float v = r.bi(); float o, o2; p.process(v, v, 0.f, R_OUTER, RPM_VALUES[0], o, o2); x.push_back(v); y.push_back(o); }
 		int lag = bestLag(x, y, 600);
 		printf("  latency at OFFSET 0: %d samples (%.2f ms)\n", lag, lag * 1000.f / SR);
-		check(lag == (int) std::lround(Platter::LATENCY * SR), "fixed 5 ms latency");
+		check(lag == (int) std::lround(Platter::LATENCY * SR), "fixed 6 ms latency");
 		// pitch swing for 0.3 mm near the label at 33
 		Platter q; q.setSampleRate(SR);
 		float mx = 0, mn = 2;
@@ -77,12 +77,12 @@ int main(int argc, char** argv) {
 		float cents = 1200.f * std::log2(mx);
 		printf("  0.3 mm at label, 33 rpm: speed %.4f..%.4f = +-%.1f cents\n", mn, mx, cents);
 		check(std::fabs(cents - 8.6f) < 0.6f, "0.3 mm at the label gives about 9 cents");
-		// 1 mm worst case stays inside the 5 ms budget
+		// 1.2 mm worst case stays inside the 6 ms budget
 		Platter w; w.setSampleRate(SR);
 		float wmx = 0;
-		for (int i = 0; i < SR * 4; i++) { float o, o2; w.process(0, 0, 1.f, R_INNER, RPM_VALUES[0], o, o2); if (i > SR) wmx = std::max(wmx, w.speed); }
-		printf("  1 mm at label: +-%.1f cents\n", 1200.f * std::log2(wmx));
-		check(wmx > 1.015f && wmx < 1.02f, "1 mm at the label reaches about 29 cents, no clipping of the swing");
+		for (int i = 0; i < SR * 4; i++) { float o, o2; w.process(0, 0, 1.2f, R_INNER, RPM_VALUES[0], o, o2); if (i > SR) wmx = std::max(wmx, w.speed); }
+		printf("  1.2 mm at label: +-%.1f cents\n", 1200.f * std::log2(wmx));
+		check(wmx > 1.019f && wmx < 1.021f, "1.2 mm at the label reaches about 34 cents, no clipping of the swing");
 		// demo: loop through 0.5 mm, label area, 33 rpm
 		Platter d; d.setSampleRate(SR); Loop L; std::vector<float> wav;
 		for (int i = 0; i < SR * 10; i++) {

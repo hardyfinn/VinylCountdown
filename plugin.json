@@ -1,7 +1,7 @@
 {
   "slug": "VinylCountdown",
   "name": "VinylCountdown",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "license": "GPL-3.0-or-later",
   "brand": "Haer",
   "author": "Haer",
@@ -16,7 +16,7 @@
     {
       "slug": "VinylCountdown",
       "name": "Vinyl Countdown",
-      "description": "Seven vinyl stages in record order: lathe (hot cut, elliptic, HF limit, groove echo), RIAA cut/play curves, pressing generation and wear, inner-groove tracing, stylus/cartridge, off-centre wow and a drifting second deck. Live audio, max 5 ms latency (plus up to 100 ms on deck B)",
+      "description": "Seven vinyl stages in record order: lathe (hot cut, elliptic, HF limit, groove echo), RIAA cut/play curves, pressing generation and wear, inner-groove tracing, stylus/cartridge, off-centre wow and a drifting second deck. Live audio, max 6 ms latency (plus up to 100 ms on deck B)",
       "tags": [
         "Effect",
         "Distortion",
