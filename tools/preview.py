@@ -47,10 +47,16 @@ for name, m in mp.MODULES.items():
         elif kind == "light":
             g.append(f'<circle cx="{x}" cy="{y}" r="1.1" fill="{m["accent"]}" fill-opacity="0.8" stroke="#000" stroke-width="0.2"/>')
         elif kind == "disp":
-            lines = {"A_DISP": ["A > GROOVE RADIUS  +60%"], "B_DISP": ["B > WRECK XFADE  -40%"]}.get(ident, SAMPLE.get(name, ["", ""]))
+            demo = {"Studio": ["A > TAPE SAT +50%", "B > FLUTTER +50%"], "ListeningRoom": ["A > DISTANCE +50%", "B > SPEAKER +50%"]}
+            if name in demo and ident in ("A_DISP", "B_DISP"):
+                lines = [demo[name][0 if ident == "A_DISP" else 1]]
+            elif ident == "SPK_DISP":
+                lines = ["BOOKSHELF", "HI-FI"]
+            else:
+                lines = {"A_DISP": ["A > GROOVE RADIUS  +60%"], "B_DISP": ["B > WRECK XFADE  -40%"]}.get(ident, SAMPLE.get(name, ["", ""]))
             w, h = extra
             for j, ln in enumerate(lines):
-                g.append(f'<text x="{x + w / 2}" y="{y + (3.3 if h < 6 else 4.0) + j * 4.2}" font-size="2.6" text-anchor="middle" '
+                g.append(f'<text x="{x + w / 2}" y="{y + (3.3 if h < 6 else 4.0) + j * 4.2}" font-size="{2.2 if w < 40 else 2.6}" text-anchor="middle" '
                          f'fill="{m["accent"]}" style="font-family:monospace;font-weight:bold">{ln}</text>')
     for sx in (mp.HP, W - 2 * mp.HP):
         for sy in (0.0, mp.H - mp.HP):
