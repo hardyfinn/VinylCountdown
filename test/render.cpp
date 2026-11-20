@@ -2,7 +2,9 @@
 //   make test     (writes test/*.wav)
 // Checks the latency promise of every module, plus basic sanity.
 #include "../src/ScratchDSP.hpp"
+#include "../src/ChainDSP.hpp"
 #include <cstdio>
+#include <functional>
 #include <string>
 using namespace vinyl;
 
@@ -430,6 +432,69 @@ int main(int argc, char** argv) {
 			if (lvl < 1.f) check(std::fabs(rms(out) / rms(in) - 1.f) < 0.25f, "small signal about unity gain");
 			else check(h2 > 0.01f, "loud signal gets even harmonics");
 		}
+	}
+
+	{
+		printf("Studio + Listening Room\n");
+		auto rms = [](const std::vector<float>& v) { double a = 0; for (float x : v) a += x * x; return (float) std::sqrt(a / std::max<size_t>(v.size(), 1)); };
+		auto finite = [](const std::vector<float>& v) { for (float x : v) if (!std::isfinite(x) || std::fabs(x) > 30.f) return false; return true; };
+		// a run of the music loop through f(l, r, &ol, &or)
+		auto run = [&](std::function<void(float, float, float&, float&)> f, float secs, std::vector<float>* in = nullptr) {
+			Loop L; std::vector<float> o;
+			for (int i = 0; i < (int) (SR * secs); i++) { float t = i / (float) SR, a, b, x, y; L.next(t, a, b); f(a, b, x, y); o.push_back(x); o.push_back(y); if (in) { in->push_back(a); in->push_back(b); } }
+			return o;
+		};
+		std::vector<float> dry; run([](float a, float b, float& x, float& y) { x = a; y = b; }, 4.f, &dry);
+		float dryR = rms(dry);
+		auto db = [&](const std::vector<float>& v) { return 20.f * std::log10(rms(v) / dryR); };
+		// console
+		{ Console c; c.setSampleRate(SR); auto o = run([&](float a, float b, float& x, float& y) { c.process(a, b, 0.6f, 0.7f, 0.5f, x, y); }, 4.f);
+		  printf("  console (drive 60%%, iron 70%%): %+.1f dB\n", db(o)); check(finite(o) && std::fabs(db(o)) < 4.f, "console keeps level within 4 dB"); }
+		// tape latency at flutter 0 + level
+		{ Tape t; t.setSampleRate(SR); std::vector<float> x, y; Rng r;
+		  for (int i = 0; i < SR / 2; i++) { float v = r.bi(), a, b; t.process(v, v, 0.f, 0.f, 2, 0.f, 0.f, a, b); x.push_back(v); y.push_back(a); }
+		  int lag = bestLag(x, y, 400); printf("  tape latency: %.2f ms\n", lag * 1000.f / SR); check(std::abs(lag - (int) std::lround(Tape::LATENCY * SR)) <= 1, "tape fixed 3 ms latency");
+		  Tape u; u.setSampleRate(SR); auto o = run([&](float a, float b, float& x2, float& y2) { u.process(a, b, 0.8f, 0.8f, 1, 0.8f, 0.5f, x2, y2); }, 4.f);
+		  printf("  tape (sat 80%%, flutter 80%%): %+.1f dB\n", db(o)); check(finite(o) && std::fabs(db(o)) < 4.f, "tape keeps level within 4 dB"); }
+		// dolby
+		{ float lv[3];
+		  for (int p = 0; p < 3; p++) { DolbyA d; d.setSampleRate(SR); auto o = run([&](float a, float b, float& x, float& y) { d.process(a * 0.3f, b * 0.3f, 0.f, p, x, y); x /= 0.3f; y /= 0.3f; }, 4.f); lv[p] = db(o); check(finite(o), "dolby finite"); }
+		  printf("  dolby OK %+.1f dB, ENC %+.1f dB, DEC %+.1f dB\n", lv[0], lv[1], lv[2]);
+		  check(std::fabs(lv[0]) < 1.5f, "dolby encode+decode about transparent");
+		  check(lv[1] > lv[0] + 0.3f && lv[2] < lv[0] - 0.3f, "ENC louder/brighter, DEC quieter/duller");
+		  DolbyA e; e.setSampleRate(SR); auto o = run([&](float a, float b, float& x, float& y) { e.process(a * 0.3f, b * 0.3f, 6.f, 0, x, y); x /= 0.3f; y /= 0.3f; }, 4.f);
+		  printf("  dolby ERROR +6 dB: %+.1f dB\n", db(o));
+		  DolbyA e2; e2.setSampleRate(SR); auto o2 = run([&](float a, float b, float& x, float& y) { e2.process(a * 0.3f, b * 0.3f, -6.f, 0, x, y); x /= 0.3f; y /= 0.3f; }, 4.f);
+		  printf("  dolby ERROR -6 dB: %+.1f dB\n", db(o2)); }
+		// glue
+		{ Glue g; g.setSampleRate(SR); float mx = 0; auto o = run([&](float a, float b, float& x, float& y) { g.process(a, b, 0.8f, 1, x, y); mx = std::max(mx, g.grDb); }, 4.f);
+		  printf("  glue 80%%: max GR %.1f dB, level %+.1f dB\n", mx, db(o)); check(mx > 3.f && finite(o), "glue squeezes the loud bits"); }
+		// amp
+		for (int ty = 0; ty < 3; ty++) { PowerAmp p; p.setSampleRate(SR); auto o = run([&](float a, float b, float& x, float& y) { p.process(a, b, 0.6f, ty, true, x, y); }, 3.f);
+		  printf("  amp type %d: %+.1f dB\n", ty, db(o)); check(finite(o) && std::fabs(db(o)) < 9.f, "amp level sane"); }
+		// speakers
+		for (int m = 0; m < NUM_SPEAKERS; m++) { Speaker sp; sp.setSampleRate(SR); auto o = run([&](float a, float b, float& x, float& y) { sp.process(a, b, m, 0.5f, x, y); }, 2.f);
+		  printf("  speaker %-24s %+.1f dB\n", SPEAKERS[m].name, db(o)); check(finite(o), "speaker finite"); }
+		// room + ears
+		{ Room rm; rm.setSampleRate(SR); Ears e; e.setSampleRate(SR);
+		  auto o = run([&](float a, float b, float& x, float& y) { float dl, dr, wl, wr; rm.process(a, b, 0.5f, 0.4f, 0.5f, false, dl, dr, wl, wr); e.process(dl, dr, wl, wr, 0.4f, 0.3f, 0.3f, x, y); }, 4.f);
+		  printf("  room + ears: %+.1f dB\n", db(o)); check(finite(o) && std::fabs(db(o)) < 8.f, "room + ears level sane");
+		  Room w; w.setSampleRate(SR); auto o2 = run([&](float a, float b, float& x, float& y) { float dl, dr, wl, wr; w.process(a, b, 0.5f, 0.4f, 0.f, true, dl, dr, wl, wr); x = dl + wl; y = dr + wr; }, 3.f);
+		  check(finite(o2), "next door finite");
+		  // impulse: direct sound arrives with no delay at angle 0
+		  Room z; z.setSampleRate(SR); Ears ez; ez.setSampleRate(SR); int pk = -1; float best = 0;
+		  for (int i = 0; i < 200; i++) { float dl, dr, wl, wr, x, y; z.process(i == 50 ? 1.f : 0.f, i == 50 ? 1.f : 0.f, 0.3f, 0.5f, 0.f, false, dl, dr, wl, wr); ez.process(dl, dr, wl, wr, 0.f, 0.f, 0.f, x, y); if (std::fabs(x) > best) { best = std::fabs(x); pk = i; } }
+		  printf("  direct sound peak at %d samples after the input\n", pk - 50); check(pk - 50 <= 2, "listening room: direct sound not delayed"); }
+		// demo: studio chain then the room
+		{ Console c; Tape t; DolbyA d; Glue g; PowerAmp p; Speaker sp; Room rm; Ears e;
+		  c.setSampleRate(SR); t.setSampleRate(SR); d.setSampleRate(SR); g.setSampleRate(SR); p.setSampleRate(SR); sp.setSampleRate(SR); rm.setSampleRate(SR); e.setSampleRate(SR);
+		  auto o = run([&](float a, float b, float& x, float& y) {
+			  float t1 = 0;
+			  c.process(a, b, 0.5f, 0.6f, 0.3f, a, b); t.process(a, b, 0.6f, 0.6f, 1, 0.4f, 0.1f, a, b);
+			  d.process(a, b, -3.f, 0, a, b); g.process(a, b, 0.5f, 1, a, b);
+			  p.process(a, b, 0.5f, 0, false, a, b); sp.process(a, b, 0, 0.3f, a, b);
+			  float dl, dr, wl, wr; rm.process(a, b, 0.4f, 0.5f, 0.4f, false, dl, dr, wl, wr); e.process(dl, dr, wl, wr, 0.35f, 0.f, 0.f, x, y); (void) t1; }, 8.f);
+		  writeWav(dir + "/test/studio-room-demo.wav", o); }
 	}
 
 	printf(fails ? "%d FAILED\n" : "all ok\n", fails);

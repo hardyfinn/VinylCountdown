@@ -200,6 +200,93 @@ for i, k, n, kind in [(0, "IN_L", "IN L", "in"), (1, "IN_R", "IN R", "in"), (3, 
     scr.append((kind, k, SX[i], 118.5, n, None))
 MODULES["Scratch"] = dict(hp=24, accent="#E6C84F", items=scr, logo=((SX[1] + SX[3]) / 2, 125.6))
 
+# ---- chain modules: 20 HP, four sections, CV A/B, audio strip ---------------
+W20 = 20 * HP
+X4 = [(W20 - 4 * 23.0) / 2 + 11.5 + 23.0 * i for i in range(4)]
+
+
+def chain_bottom(xs, W):
+    items = []
+    for tag, c0, col in (("A", 0, "#E8B04A"), ("B", 2, "#7FB8A4")):
+        a, b = xs[c0], xs[c0 + 1]
+        items += [
+            ("text", f"{tag}_T", a - 5.6, 93.0, f"CV {tag}", (2.9, col)),
+            ("in", f"CV{tag}_IN", a - 5.6, 102.8, "", None),
+            ("disp", f"{tag}_DISP", a + 1.6, 88.4, "", (b + 9.6 - a - 1.6, 4.6)),
+            ("knobS", f"{tag}_DEST", (a + b) / 2 + 1.0, 104.2, "DEST", None),
+            ("trim", f"{tag}_AMT", b + 6.2, 104.6, "AMT", None),
+        ]
+    boxes = [(xs[0] - 10.8, 86.2, xs[1] - xs[0] + 21.6, 22.2, "#E8B04A"),
+             (xs[2] - 10.8, 86.2, xs[3] - xs[2] + 21.6, 22.2, "#7FB8A4")]
+    for i, (k, ident, lab) in enumerate([("in", "IN_L", "IN L"), ("in", "IN_R", "IN R"),
+                                          ("out", "OUT_L", "OUT L"), ("out", "OUT_R", "OUT R")]):
+        items.append((k, ident, xs[i], 118.0, lab, None))
+    items += [
+        ("text", "BYP_T", W - 21.5, 8.4, "BYPASS", (3.2, "#EFE8DA", "end")),
+        ("btn", "BYPASS", W - 15.0, 7.2, "", None),
+    ]
+    return items, boxes
+
+
+def chain_sections(xs, secs):
+    items = []
+    for i, (nm, col, sid) in enumerate(secs):
+        items.append(("text", f"{sid}_NAME", xs[i], 15.6, nm, (3.2, col)))
+        items.append(("latch", f"{sid}_ON", xs[i], 20.8, "", None))
+    return items
+
+
+x = X4
+st = chain_sections(X4, [("CONSOLE", "#C9C2B4", "CONSOLE"), ("TAPE", "#D9774B", "TAPE"),
+                         ("DOLBY A", "#8FB3D9", "DOLBY"), ("GLUE", "#E8B04A", "GLUE")])
+st += [
+    ("knobL", "DRIVE", x[0], 36.0, "DRIVE", None),
+    ("knobS", "IRON", x[0], 57.0, "IRON", None),
+    ("knobS", "XTALK", x[0], 71.5, "XTALK", None),
+    ("knobS", "SAT", x[1], 32.0, "SAT", None),
+    ("knobS", "BUMP", x[1], 44.5, "BUMP", None),
+    ("knobS", "FLUTTER", x[1], 57.0, "FLUTTER", None),
+    ("knobS", "AZIMUTH", x[1], 69.5, "AZIMUTH", None),
+    ("sw3", "SPEED", x[1] - 4.5, 80.5, "", ["7.5", "15", "30"]),
+    ("text", "IPS_T", x[1] + 7.0, 84.6, "IPS", (2.9, "#A39C92")),
+    ("knobL", "ERROR", x[2], 36.0, "ERROR", None),
+    ("sw3", "PATH", x[2] - 3.5, 59.0, "PATH", ["DEC", "ENC", "OK"]),
+    ("knobL", "AMOUNT", x[3], 36.0, "AMOUNT", None),
+    ("sw3", "TIME", x[3] - 4.5, 59.0, "TIME", ["SLOW", "MID", "FAST"]),
+    ("light", "GR_LIGHT", x[3], 74.0, "SQUEEZE", None),
+]
+sb, sbox = chain_bottom(X4, W20)
+st += sb
+MODULES_CHAIN = {"Studio": dict(hp=20, title="Studio", accent="#C9C2B4", items=st, columns=X4,
+                                title_y=8.4, title_size=3.6, logo=((X4[1] + X4[2]) / 2, 125.6), col_end=85.0,
+                                boxes=sbox, band=(109.5, 122.8))}
+
+lr = chain_sections(X4, [("AMP", "#E0605A", "AMP"), ("SPEAKER", "#E8B04A", "SPEAKER"),
+                         ("ROOM", "#7FB8A4", "ROOM"), ("EARS", "#B7A3D9", "EARS")])
+lr += [
+    ("knobL", "VOLUME", x[0], 36.0, "VOLUME", None),
+    ("sw3", "TYPE", x[0] - 5.5, 59.0, "TYPE", ["CHEAP", "SOLID", "VALVE"]),
+    ("btn", "LOUD", x[0] - 5.0, 76.0, "", None),
+    ("text", "LOUD_T", x[0] - 1.6, 77.1, "LOUD", (2.9, "#A39C92", "start")),
+    ("disp", "SPK_DISP", x[1] - 10.0, 25.0, "", (20.0, 8.6)),
+    ("knobL", "MODEL", x[1], 48.0, "MODEL", None),
+    ("knobS", "BREAKUP", x[1], 69.5, "BREAKUP", None),
+    ("knobL", "SIZE", x[2], 36.0, "SIZE", None),
+    ("knobS", "DAMP", x[2], 55.0, "DAMP", None),
+    ("knobS", "MODES", x[2], 69.5, "MODES", None),
+    ("btn", "WALL", x[2] - 5.0, 79.0, "", None),
+    ("text", "WALL_T", x[2] - 1.6, 80.1, "WALL", (2.9, "#A39C92", "start")),
+    ("knobL", "DISTANCE", x[3], 36.0, "DISTANCE", None),
+    ("knobS", "ANGLE", x[3], 55.0, "ANGLE", None),
+    ("knobS", "PARTY", x[3], 69.5, "PARTY", None),
+]
+lb, lbox = chain_bottom(X4, W20)
+lr += lb
+MODULES_CHAIN["ListeningRoom"] = dict(hp=20, title="Listening Room", accent="#7FB8A4", items=lr, columns=X4,
+                                      title_y=8.4, title_size=3.6, logo=((X4[1] + X4[2]) / 2, 125.6), col_end=85.0,
+                                      boxes=lbox, band=(109.5, 122.8))
+MODULES.update(MODULES_CHAIN)
+
 # ---------------------------------------------------------------------------
 fonts = {}
 

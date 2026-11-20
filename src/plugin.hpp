@@ -9,6 +9,8 @@ extern Plugin* pluginInstance;
 
 extern Model* modelVinylCountdown;
 extern Model* modelScratch;
+extern Model* modelStudio;
+extern Model* modelListeningRoom;
 
 // mm -> px
 inline Vec P(float x, float y) { return mm2px(Vec(x, y)); }

@@ -5,7 +5,7 @@ a filter. Each one copies a physical part of making or playing a record.
 
 **House rule: every module works on live audio and adds at most 100 ms of latency.**
 
-Two modules:
+Four modules, in the order a record travels:
 
 **Vinyl Countdown** (36 HP): eight stages in record order, each with an on/off button.
 LATHE (hot cut DRIVE, ELLIPTIC mono bass, HF LIMIT, groove ECHO) -> RIAA cut curve ->
@@ -18,6 +18,16 @@ triggers, or a BYPASS gate), an AMOUNT attenuverter and a screen; a dashed ring 
 BYPASS (top right) passes the dry input straight through, with no delay; Randomize leaves it alone.
 Right-click > Presets has 20 starting points.
 Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
+
+**Studio** (20 HP): before the lathe. CONSOLE (DRIVE, IRON transformer, XTALK) -> TAPE master
+(SAT, BUMP, FLUTTER, AZIMUTH, 7.5/15/30 ips) with DOLBY A around it (ERROR = played back off level;
+PATH OK / ENC never decoded / DEC never encoded) -> GLUE (vari-mu AMOUNT, TIME). Latency 0, +3 ms with TAPE.
+
+**Listening Room** (20 HP): after the preamp. AMP (VOLUME, VALVE/SOLID/CHEAP, LOUDNESS) -> SPEAKER
+(8 boxes from phone to club stack, BREAKUP) -> ROOM (SIZE, DAMP, bass MODES, WALL = next door) ->
+EARS (DISTANCE, head ANGLE, PARTY = the morning after). The direct sound is never delayed.
+
+Studio and Listening Room also have CV A/B, BYPASS and presets, like Vinyl Countdown.
 
 **Scratch** (24 HP): a scratch sequencer that plays like a person. 12 gestures (baby, chirp,
 forward, transformer, 1- and 2-click flare, crab, orbit, tear, scribble, stab, drag) on 8 clocked

@@ -1,7 +1,7 @@
 {
   "slug": "VinylCountdown",
   "name": "VinylCountdown",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "license": "GPL-3.0-or-later",
   "brand": "Haer",
   "author": "Haer",
@@ -31,6 +31,26 @@
         "Effect",
         "Sequencer",
         "Sampler"
+      ]
+    },
+    {
+      "slug": "Studio",
+      "name": "Studio",
+      "description": "The record before the lathe: console (drive, transformer iron, crosstalk), master tape (saturation, head bump, 7.5/15/30 ips, flutter, azimuth), Dolby A around the tape with level error and the classic never-decoded / double-decoded mistakes, and vari-mu glue. Two assignable CVs, bypass, presets",
+      "tags": [
+        "Effect",
+        "Distortion",
+        "Compressor"
+      ]
+    },
+    {
+      "slug": "ListeningRoom",
+      "name": "Listening Room",
+      "description": "The record after the preamp: power amp (valve, solid state, cheap crossover distortion, loudness), eight speakers from phone to club stack, a room with bass modes and a next-door wall, and the listener's ears (distance, head angle, the morning after). Two assignable CVs, bypass, presets",
+      "tags": [
+        "Effect",
+        "Reverb",
+        "Filter"
       ]
     }
   ]

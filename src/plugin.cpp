@@ -6,4 +6,6 @@ void init(Plugin* p) {
 	pluginInstance = p;
 	p->addModel(modelVinylCountdown);
 	p->addModel(modelScratch);
+	p->addModel(modelStudio);
+	p->addModel(modelListeningRoom);
 }
