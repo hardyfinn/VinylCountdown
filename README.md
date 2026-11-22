@@ -49,3 +49,7 @@ Every push builds an Apple Silicon `.vcvplugin` in GitHub Actions (see the
 
 `make test` runs offline engine checks (including every latency promise) and writes demo WAVs.
 Panels and `src/Layout.hpp` come from `python3 res/make_panels.py` (needs fonttools).
+
+## Licence
+
+MIT (see `LICENSE.txt`): you're free to use, change, port (VST/CLAP, other platforms, hardware) and share this code, as long as the copyright notice and licence text come along. Fonts on the panel (Inter, Climate Crisis) are under the SIL Open Font Licence.
