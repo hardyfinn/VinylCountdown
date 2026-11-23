@@ -54,7 +54,7 @@ struct RoomModule : Module {
 		const char* secs[4] = {"Amp", "Speaker", "Room", "Ears"};
 		for (int i = 0; i < 4; i++)
 			configSwitch(AMP_ON_PARAM + i, 0.f, 1.f, 1.f, string::f("%s section", secs[i]), {"Off", "On"});
-		configParam(VOLUME_PARAM, 0.f, 1.f, 0.5f, "Volume (how hard the amp is driven)", "%", 0.f, 100.f);
+		configParam(VOLUME_PARAM, 0.f, 1.f, 0.5f, "Volume (how hard the amp is driven)", "%", 0.f, 100.f)->randomizeEnabled = false;
 		configSwitch(TYPE_PARAM, 0.f, 2.f, 2.f, "Amp", {"Cheap (crossover distortion)", "Solid state", "Valve"});
 		configSwitch(LOUD_PARAM, 0.f, 1.f, 0.f, "Loudness (bass + treble lift, more at low volume)", {"Off", "On"});
 		std::vector<std::string> models;
