@@ -146,7 +146,7 @@ struct VinylModule : Module {
 		configParam(VERT_PARAM, 0.f, 1.f, 0.f, "Vertical mistracking (stereo width distorts first)", "%", 0.f, 100.f);
 
 		configParam(OFFSET_PARAM, 0.f, 1.f, 0.3f, "Off-centre offset", " mm", 0.f, 1.2f);  // knob 0..1 = 0..1.2 mm (2.1.1: +20%)
-		configSwitch(RPM_PARAM, 0.f, 2.f, 0.f, "Speed", {"33 rpm", "45 rpm", "78 rpm"});
+		configSwitch(RPM_PARAM, 0.f, 1.f, 0.f, "Speed", {"33 rpm", "45 rpm"});
 		configParam(BEATS_PARAM, 1.f, 8.f, 4.f, "Beats per revolution (when CLOCK is patched)");
 		paramQuantities[BEATS_PARAM]->snapEnabled = true;
 
@@ -160,17 +160,8 @@ struct VinylModule : Module {
 		configParam(XFMR_PARAM, 0.f, 1.f, 0.2f, "Step-up transformer (bass saturates, top rolls off)", "%", 0.f, 100.f);
 		configParam(HUM_PARAM, 0.f, 1.f, 0.f, "Mains hum", "%", 0.f, 100.f);
 		configSwitch(HZ_PARAM, 0.f, 1.f, 0.f, "Mains frequency", {"50 Hz (UK/Europe)", "60 Hz (US/Japan)"});
-		configSwitch(GND_PARAM, 0.f, 1.f, 0.f, "Ground lead", {"Connected", "Lifted (hum and buzz)"});
 		configSwitch(BYPASS_PARAM, 0.f, 1.f, 0.f, "Bypass (dry input straight to the outputs, no delay)", {"Off", "Bypassed"});
 		paramQuantities[BYPASS_PARAM]->randomizeEnabled = false;
-		std::vector<std::string> dn;
-		for (int i = 0; i < NUM_DESTS; i++) dn.push_back(DEST(i).menu);
-		configSwitch(A_DEST_PARAM, 0.f, NUM_DESTS - 1, 0.f, "CV A destination", dn);
-		configParam(A_AMT_PARAM, -1.f, 1.f, 0.5f, "CV A amount", "%", 0.f, 100.f);
-		configSwitch(B_DEST_PARAM, 0.f, NUM_DESTS - 1, 0.f, "CV B destination", dn);
-		configParam(B_AMT_PARAM, -1.f, 1.f, 0.5f, "CV B amount", "%", 0.f, 100.f);
-		configInput(CVA_INPUT, "CV A (10 V = full knob range at 100%; triggers and gates above 1 V)");
-		configInput(CVB_INPUT, "CV B (10 V = full knob range at 100%; triggers and gates above 1 V)");
 		configInput(IN_L_INPUT, "Left (or mono)");
 		configInput(IN_R_INPUT, "Right (normalled to left)");
 		configInput(CLOCK_INPUT, "Clock (one pulse per beat: a revolution = BEATS beats)");
@@ -209,15 +200,12 @@ struct VinylModule : Module {
 
 	void process(const ProcessArgs& args) override {
 		float sr = args.sampleRate;
-		// assignable CV
-		destA = clamp((int) std::round(params[A_DEST_PARAM].getValue()), 0, NUM_DESTS - 1);
-		destB = clamp((int) std::round(params[B_DEST_PARAM].getValue()), 0, NUM_DESTS - 1);
-		cvA = inputs[CVA_INPUT].getVoltage() * params[A_AMT_PARAM].getValue();
-		cvB = inputs[CVB_INPUT].getVoltage() * params[B_AMT_PARAM].getValue();
-		bool firedA = trigA.process(cvA, 0.1f, 1.f), firedB = trigB.process(cvB, 0.1f, 1.f);
-		auto fired = [&](int dk) { return (firedA && destA == dk) || (firedB && destB == dk); };
-		bool gateBypass = (destA == D_BYPASS && cvA > 1.f) || (destB == D_BYPASS && cvB > 1.f);
-		int rpmIdx = clamp((int) std::round(params[RPM_PARAM].getValue()), 0, 2);
+		// 2.6.0: CV A/B removed from the panel; the routing code stays idle
+		destA = destB = 0;
+		cvA = cvB = 0.f;
+		auto fired = [&](int dk) { (void) dk; return false; };
+		bool gateBypass = false;
+		int rpmIdx = clamp((int) std::round(params[RPM_PARAM].getValue()), 0, 1);
 		float rpm = vinyl::RPM_VALUES[rpmIdx];
 
 		// clock -> revolution length
@@ -291,7 +279,7 @@ struct VinylModule : Module {
 		// PREAMP
 		if (on(6))
 			preamp.process(l, r, pv(VALVE_PARAM), pv(XFMR_PARAM), pv(HUM_PARAM), params[HZ_PARAM].getValue() > 0.5f,
-			               params[GND_PARAM].getValue() > 0.5f, l, r);
+			               false, l, r);
 		// WRECK
 		if (on(7)) {
 			bool sync = syncBtn.process(params[SYNC_PARAM].getValue());
@@ -322,7 +310,6 @@ struct VinylModule : Module {
 		if (lightDiv.process()) {
 			float dt = args.sampleTime * lightDiv.getDivision();
 			for (int i = 0; i < NSEC; i++) lights[secLight(i)].setBrightness(on(i) ? 1.f : 0.f);
-			lights[GND_LIGHT].setBrightness(params[GND_PARAM].getValue() > 0.5f ? 1.f : 0.f);
 			lights[BYPASS_LIGHT].setBrightness(bypassFade);
 			lights[HF_LIGHT].setBrightness(on(0) ? clamp((1.f - lathe.hfGain) * 3.f, 0.f, 1.f) : 0.f);
 			lights[SIDE_PLAY_LIGHT].setBrightness(sidePlaying ? 1.f : 0.f);
@@ -364,7 +351,7 @@ static const Preset PRESETS[] = {
 	{"Dubplate, 50 plays", false, {{VM::GEN_PARAM, 0.0f}, {VM::WEAR_PARAM, 0.75f}, {VM::DRIVE_PARAM, 0.6f}, {VM::ECHO_PARAM, 0.4f}, {VM::RADIUS_PARAM, 0.3f}, {VM::TIP_PARAM, 1.0f}}},
 	{"Inner groove blues", false, {{VM::RADIUS_PARAM, 0.95f}, {VM::TIP_PARAM, 0.0f}, {VM::TRACK_PARAM, 0.3f}, {VM::DRIVE_PARAM, 0.6f}, {VM::VERT_PARAM, 0.3f}}},
 	{"Hot 12-inch club cut", false, {{VM::RPM_PARAM, 1.0f}, {VM::RADIUS_PARAM, 0.05f}, {VM::TIP_PARAM, 2.0f}, {VM::DRIVE_PARAM, 0.55f}, {VM::ELLIPTIC_PARAM, 0.5f}, {VM::HF_PARAM, 0.35f}, {VM::GEN_PARAM, 0.15f}, {VM::VALVE_PARAM, 0.2f}}},
-	{"78 shellac", false, {{VM::RPM_PARAM, 2.0f}, {VM::CUT_PARAM, 3.0f}, {VM::PLAY_PARAM, 0.0f}, {VM::GEN_PARAM, 0.8f}, {VM::WEAR_PARAM, 0.7f}, {VM::TIP_PARAM, 0.0f}, {VM::TRACK_PARAM, 0.7f}, {VM::LOAD_PARAM, 0.8f}, {VM::VALVE_PARAM, 0.5f}, {VM::XFMR_PARAM, 0.3f}, {VM::HUM_PARAM, 0.15f}, {VM::ELLIPTIC_PARAM, 1.0f}}},
+	{"Shellac-era reissue", false, {{VM::RPM_PARAM, 0.0f}, {VM::CUT_PARAM, 3.0f}, {VM::PLAY_PARAM, 0.0f}, {VM::GEN_PARAM, 0.8f}, {VM::WEAR_PARAM, 0.7f}, {VM::TIP_PARAM, 0.0f}, {VM::TRACK_PARAM, 0.7f}, {VM::LOAD_PARAM, 0.8f}, {VM::VALVE_PARAM, 0.5f}, {VM::XFMR_PARAM, 0.3f}, {VM::HUM_PARAM, 0.15f}, {VM::ELLIPTIC_PARAM, 1.0f}}},
 	{"Wrong EQ: Columbia LP on RIAA", false, {{VM::CUT_PARAM, 1.0f}, {VM::PLAY_PARAM, 0.0f}, {VM::GEN_PARAM, 0.3f}}},
 	{"Seasick warp", false, {{VM::OFFSET_PARAM, 1.0f}, {VM::RADIUS_PARAM, 0.9f}, {VM::GEN_PARAM, 0.4f}}},
 	{"Bedroom DJ trainwreck", false, {{VM::WRECK_ON_PARAM, 1.0f}, {VM::DRIFT_PARAM, 0.75f}, {VM::SLOP_PARAM, 0.8f}, {VM::XFADE_PARAM, 0.5f}}},
@@ -374,11 +361,27 @@ static const Preset PRESETS[] = {
 	{"Bootleg, 10th generation", false, {{VM::GEN_PARAM, 1.0f}, {VM::WEAR_PARAM, 0.35f}, {VM::RADIUS_PARAM, 0.6f}, {VM::CUT_PARAM, 2.0f}, {VM::PLAY_PARAM, 0.0f}, {VM::HUM_PARAM, 0.1f}}},
 	{"Cheap record player", false, {{VM::TIP_PARAM, 0.0f}, {VM::LOAD_PARAM, 1.0f}, {VM::AZIMUTH_PARAM, 0.5f}, {VM::VERT_PARAM, 0.3f}, {VM::TRACK_PARAM, 0.2f}, {VM::VALVE_PARAM, 0.35f}, {VM::HUM_PARAM, 0.25f}, {VM::OFFSET_PARAM, 0.5f}}},
 	{"Audiophile, moving coil", true, {{VM::TIP_PARAM, 2.0f}, {VM::TRACK_PARAM, 0.6f}, {VM::GEN_PARAM, 0.05f}, {VM::WEAR_PARAM, 0.0f}, {VM::OFFSET_PARAM, 0.08f}, {VM::ECHO_PARAM, 0.08f}, {VM::VALVE_PARAM, 0.1f}, {VM::XFMR_PARAM, 0.45f}, {VM::RADIUS_PARAM, 0.1f}}},
-	{"Ground loop", false, {{VM::HUM_PARAM, 0.55f}, {VM::GND_PARAM, 1.0f}, {VM::VALVE_PARAM, 0.4f}}},
+	{"Humming valve amp", false, {{VM::HUM_PARAM, 0.55f}, {VM::VALVE_PARAM, 0.55f}, {VM::XFMR_PARAM, 0.4f}}},
 	{"Leaning needle", false, {{VM::AZIMUTH_PARAM, 0.85f}, {VM::VERT_PARAM, 0.45f}, {VM::LOAD_PARAM, 0.6f}}},
 	{"Groove echo ghost", false, {{VM::ECHO_PARAM, 1.0f}, {VM::DRIVE_PARAM, 0.5f}, {VM::RADIUS_PARAM, 0.2f}}},
 	{"Played to death", false, {{VM::WEAR_PARAM, 1.0f}, {VM::GEN_PARAM, 0.6f}, {VM::RADIUS_PARAM, 0.85f}, {VM::TRACK_PARAM, 0.15f}, {VM::VERT_PARAM, 0.6f}, {VM::TIP_PARAM, 0.0f}}},
 	{"Mono reissue, US pressing", false, {{VM::ELLIPTIC_PARAM, 1.0f}, {VM::GEN_PARAM, 0.55f}, {VM::CUT_PARAM, 2.0f}, {VM::PLAY_PARAM, 0.0f}, {VM::HZ_PARAM, 1.0f}, {VM::HUM_PARAM, 0.2f}, {VM::VALVE_PARAM, 0.45f}}},
+	// 2.6.0: 15 more
+	{"Northern soul 45", false, {{VM::RPM_PARAM, 1.0f}, {VM::RADIUS_PARAM, 0.2f}, {VM::DRIVE_PARAM, 0.6f}, {VM::GEN_PARAM, 0.45f}, {VM::WEAR_PARAM, 0.4f}, {VM::TIP_PARAM, 0.0f}, {VM::VALVE_PARAM, 0.45f}, {VM::XFMR_PARAM, 0.35f}}},
+	{"Library music LP", false, {{VM::RADIUS_PARAM, 0.45f}, {VM::GEN_PARAM, 0.3f}, {VM::WEAR_PARAM, 0.15f}, {VM::TIP_PARAM, 1.0f}, {VM::ECHO_PARAM, 0.25f}, {VM::VALVE_PARAM, 0.25f}, {VM::OFFSET_PARAM, 0.25f}}},
+	{"Dub sound system", false, {{VM::ELLIPTIC_PARAM, 0.7f}, {VM::DRIVE_PARAM, 0.7f}, {VM::ECHO_PARAM, 0.6f}, {VM::WEAR_PARAM, 0.3f}, {VM::VALVE_PARAM, 0.6f}, {VM::XFMR_PARAM, 0.6f}, {VM::HUM_PARAM, 0.2f}}},
+	{"Charity shop find", false, {{VM::GEN_PARAM, 0.7f}, {VM::WEAR_PARAM, 0.65f}, {VM::RADIUS_PARAM, 0.6f}, {VM::TRACK_PARAM, 0.25f}, {VM::OFFSET_PARAM, 0.55f}, {VM::AZIMUTH_PARAM, 0.3f}, {VM::TIP_PARAM, 0.0f}}},
+	{"Jazz club reissue", false, {{VM::GEN_PARAM, 0.25f}, {VM::RADIUS_PARAM, 0.35f}, {VM::TIP_PARAM, 2.0f}, {VM::ECHO_PARAM, 0.2f}, {VM::VALVE_PARAM, 0.35f}, {VM::XFMR_PARAM, 0.3f}, {VM::CUT_PARAM, 1.0f}, {VM::PLAY_PARAM, 0.0f}}},
+	{"Hip-hop sample source", false, {{VM::GEN_PARAM, 0.5f}, {VM::WEAR_PARAM, 0.35f}, {VM::RADIUS_PARAM, 0.7f}, {VM::DRIVE_PARAM, 0.55f}, {VM::TIP_PARAM, 0.0f}, {VM::VALVE_PARAM, 0.4f}, {VM::OFFSET_PARAM, 0.3f}}},
+	{"Promo white label", false, {{VM::RPM_PARAM, 1.0f}, {VM::GEN_PARAM, 0.0f}, {VM::WEAR_PARAM, 0.25f}, {VM::DRIVE_PARAM, 0.7f}, {VM::HF_PARAM, 0.5f}, {VM::RADIUS_PARAM, 0.1f}, {VM::TIP_PARAM, 2.0f}}},
+	{"Last track, side two", false, {{VM::RADIUS_PARAM, 1.0f}, {VM::TRACK_PARAM, 0.35f}, {VM::DRIVE_PARAM, 0.5f}, {VM::TIP_PARAM, 0.0f}, {VM::OFFSET_PARAM, 0.4f}, {VM::VERT_PARAM, 0.25f}}},
+	{"Warped and wobbling", false, {{VM::OFFSET_PARAM, 1.0f}, {VM::RADIUS_PARAM, 0.75f}, {VM::TRACK_PARAM, 0.3f}, {VM::VERT_PARAM, 0.5f}}},
+	{"Lo-fi beat tape", false, {{VM::GEN_PARAM, 0.6f}, {VM::WEAR_PARAM, 0.5f}, {VM::RADIUS_PARAM, 0.8f}, {VM::TIP_PARAM, 0.0f}, {VM::LOAD_PARAM, 0.9f}, {VM::VALVE_PARAM, 0.5f}, {VM::HUM_PARAM, 0.15f}}},
+	{"Pristine first pressing", true, {{VM::GEN_PARAM, 0.0f}, {VM::WEAR_PARAM, 0.0f}, {VM::RADIUS_PARAM, 0.05f}, {VM::TIP_PARAM, 2.0f}, {VM::TRACK_PARAM, 0.6f}, {VM::ECHO_PARAM, 0.05f}, {VM::OFFSET_PARAM, 0.05f}, {VM::VALVE_PARAM, 0.05f}, {VM::XFMR_PARAM, 0.3f}}},
+	{"Two decks, nearly in sync", false, {{VM::WRECK_ON_PARAM, 1.0f}, {VM::DRIFT_PARAM, 0.3f}, {VM::SLOP_PARAM, 0.25f}, {VM::XFADE_PARAM, 0.5f}, {VM::WOFFSET_PARAM, 4.0f}}},
+	{"Crossfade into deck B", false, {{VM::WRECK_ON_PARAM, 1.0f}, {VM::DRIFT_PARAM, 0.5f}, {VM::SLOP_PARAM, 0.5f}, {VM::XFADE_PARAM, 0.8f}}},
+	{"Late-night radio play", false, {{VM::GEN_PARAM, 0.35f}, {VM::WEAR_PARAM, 0.3f}, {VM::VALVE_PARAM, 0.5f}, {VM::XFMR_PARAM, 0.5f}, {VM::HUM_PARAM, 0.3f}, {VM::TIP_PARAM, 1.0f}, {VM::RADIUS_PARAM, 0.5f}}},
+	{"Bedroom DJ, sloppy mix", false, {{VM::RADIUS_PARAM, 0.25f}, {VM::DRIVE_PARAM, 0.45f}, {VM::WEAR_PARAM, 0.5f}, {VM::WRECK_ON_PARAM, 1.0f}, {VM::DRIFT_PARAM, 0.55f}, {VM::SLOP_PARAM, 0.6f}, {VM::XFADE_PARAM, 0.35f}}},
 };
 static const int NUM_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
 
@@ -406,55 +409,6 @@ struct RiaaMini : VinylScreen {
 		int c = module ? module->dispCut : 0, p = module ? module->dispPlay : 1;
 		out.push_back(vinyl::CURVE_SHORT[c]);
 		out.push_back(std::string("> ") + vinyl::CURVE_SHORT[p]);
-	}
-};
-
-// "A > GROOVE RADIUS  +60%"
-struct CvScreen : VinylScreen {
-	VinylModule* module = nullptr;
-	int which = 0;
-	void lines(std::vector<std::string>& out) override {
-		const char* tag = which ? "B" : "A";
-		if (!module) { out.push_back(which ? "B > WRECK XFADE  -40%" : "A > GROOVE RADIUS  +60%"); return; }
-		int d = clamp((int) std::round(module->params[which ? VinylModule::B_DEST_PARAM : VinylModule::A_DEST_PARAM].getValue()), 0, NUM_DESTS - 1);
-		float amt = module->params[which ? VinylModule::B_AMT_PARAM : VinylModule::A_AMT_PARAM].getValue();
-		const Dest& D = VinylModule::DEST(d);
-		if (D.kind == DK_NONE) out.push_back(string::f("%s > OFF", tag));
-		else if (D.kind == DK_KNOB) out.push_back(string::f("%s > %s  %+d%%", tag, D.screen, (int) std::round(amt * 100.f)));
-		else out.push_back(string::f("%s > %s%s", tag, D.screen, amt < 0.f ? " (INV)" : ""));
-	}
-};
-
-// Dashed rings round whatever CV A (amber) and CV B (teal) are driving.
-struct CvRings : TransparentWidget {
-	VinylModule* module = nullptr;
-	struct Spot { float x, y, r; };
-	std::map<int, Spot> spots;
-	void ring(NVGcontext* vg, Spot s, NVGcolor c, float extra) {
-		Vec p = P(s.x, s.y);
-		float rr = mm2px(s.r + extra);
-		nvgStrokeColor(vg, c);
-		nvgStrokeWidth(vg, mm2px(0.55f));
-		const int N = 18;
-		for (int i = 0; i < N; i++) {
-			float a0 = 2.f * M_PI * i / N, a1 = a0 + 2.f * M_PI / N * 0.6f;
-			nvgBeginPath(vg);
-			nvgArc(vg, p.x, p.y, rr, a0, a1, NVG_CW);
-			nvgStroke(vg);
-		}
-	}
-	void draw(const DrawArgs& args) override {
-		if (!module) return;
-		int dests[2] = {(int) std::round(module->params[VinylModule::A_DEST_PARAM].getValue()),
-		                (int) std::round(module->params[VinylModule::B_DEST_PARAM].getValue())};
-		NVGcolor cols[2] = {nvgRGB(232, 176, 74), nvgRGB(127, 184, 164)};
-		for (int k = 0; k < 2; k++) {
-			const Dest& D = VinylModule::DEST(dests[k]);
-			if (D.kind == DK_NONE) continue;
-			auto it = spots.find(D.param);
-			if (it == spots.end()) continue;
-			ring(args.vg, it->second, cols[k], (k == 1 && dests[0] == dests[1]) ? 1.0f : 0.f);
-		}
 	}
 };
 
@@ -506,7 +460,7 @@ struct VinylWidget : ModuleWidget {
 		knobAt<RoundSmallBlackKnob>(this, module, LV::VERT_X, LV::VERT_Y, M::VERT_PARAM);
 
 		knobAt<RoundLargeBlackKnob>(this, module, LV::OFFSET_X, LV::OFFSET_Y, M::OFFSET_PARAM);
-		addParam(createParamCentered<CKSSThree>(P(LV::RPM_X, LV::RPM_Y), module, M::RPM_PARAM));
+		addParam(createParamCentered<CKSS>(P(LV::RPM_X, LV::RPM_Y), module, M::RPM_PARAM));
 		knobAt<RoundSmallBlackKnob>(this, module, LV::BEATS_X, LV::BEATS_Y, M::BEATS_PARAM);
 		addChild(createLightCentered<SmallLight<YellowLight>>(P(LV::REV_LIGHT_X, LV::REV_LIGHT_Y), module, M::REV_LIGHT));
 
@@ -514,7 +468,6 @@ struct VinylWidget : ModuleWidget {
 		knobAt<RoundSmallBlackKnob>(this, module, LV::XFMR_X, LV::XFMR_Y, M::XFMR_PARAM);
 		knobAt<RoundSmallBlackKnob>(this, module, LV::HUM_X, LV::HUM_Y, M::HUM_PARAM);
 		addParam(createParamCentered<CKSS>(P(LV::HZ_X, LV::HZ_Y), module, M::HZ_PARAM));
-		addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<RedLight>>>(P(LV::GND_X, LV::GND_Y), module, M::GND_PARAM, M::GND_LIGHT));
 
 		knobAt<RoundSmallBlackKnob>(this, module, LV::DRIFT_X, LV::DRIFT_Y, M::DRIFT_PARAM);
 		knobAt<RoundSmallBlackKnob>(this, module, LV::SLOP_X, LV::SLOP_Y, M::SLOP_PARAM);
@@ -524,23 +477,6 @@ struct VinylWidget : ModuleWidget {
 		addChild(createLightCentered<SmallLight<RedLight>>(P(LV::NUDGE_LIGHT_X, LV::NUDGE_LIGHT_Y), module, M::NUDGE_LIGHT));
 
 		addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<RedLight>>>(P(LV::BYPASS_X, LV::BYPASS_Y), module, M::BYPASS_PARAM, M::BYPASS_LIGHT));
-
-		// assignable CV
-		addInput(createInputCentered<PJ301MPort>(P(LV::CVA_IN_X, LV::CVA_IN_Y), module, M::CVA_INPUT));
-		addInput(createInputCentered<PJ301MPort>(P(LV::CVB_IN_X, LV::CVB_IN_Y), module, M::CVB_INPUT));
-		knobAt<RoundSmallBlackKnob>(this, module, LV::A_DEST_X, LV::A_DEST_Y, M::A_DEST_PARAM);
-		knobAt<RoundSmallBlackKnob>(this, module, LV::A_AMT_X, LV::A_AMT_Y, M::A_AMT_PARAM);
-		knobAt<RoundSmallBlackKnob>(this, module, LV::B_DEST_X, LV::B_DEST_Y, M::B_DEST_PARAM);
-		knobAt<RoundSmallBlackKnob>(this, module, LV::B_AMT_X, LV::B_AMT_Y, M::B_AMT_PARAM);
-		for (int k = 0; k < 2; k++) {
-			CvScreen* c = createWidget<CvScreen>(k ? P(LV::B_DISP_X, LV::B_DISP_Y) : P(LV::A_DISP_X, LV::A_DISP_Y));
-			c->box.size = mm2px(k ? Vec(LV::B_DISP_W, LV::B_DISP_H) : Vec(LV::A_DISP_W, LV::A_DISP_H));
-			c->module = module;
-			c->which = k;
-			c->accent = k ? nvgRGB(127, 184, 164) : nvgRGB(232, 176, 74);
-			c->fontMm = 2.6f;
-			addChild(c);
-		}
 
 		struct J { float x, y; int id; bool out; };
 		const J jacks[] = {
@@ -555,27 +491,6 @@ struct VinylWidget : ModuleWidget {
 			else addInput(createInputCentered<PJ301MPort>(P(j.x, j.y), module, j.id));
 		}
 
-		// rings go on top of everything
-		CvRings* rg = createWidget<CvRings>(Vec(0, 0));
-		rg->box.size = box.size;
-		rg->module = module;
-		const float L = 7.4f, S = 4.6f, B = 3.4f;
-		rg->spots = {
-			{M::DRIVE_PARAM, {LV::DRIVE_X, LV::DRIVE_Y, S}}, {M::ELLIPTIC_PARAM, {LV::ELLIPTIC_X, LV::ELLIPTIC_Y, S}},
-			{M::HF_PARAM, {LV::HF_X, LV::HF_Y, S}}, {M::ECHO_PARAM, {LV::ECHO_X, LV::ECHO_Y, S}},
-			{M::CUT_PARAM, {LV::CUT_X, LV::CUT_Y, L}}, {M::PLAY_PARAM, {LV::PLAY_X, LV::PLAY_Y, L}},
-			{M::GEN_PARAM, {LV::GEN_X, LV::GEN_Y, L}}, {M::WEAR_PARAM, {LV::WEAR_X, LV::WEAR_Y, L}},
-			{M::RADIUS_PARAM, {LV::RADIUS_X, LV::RADIUS_Y, L}}, {M::TRACK_PARAM, {LV::TRACK_X, LV::TRACK_Y, S}},
-			{M::SIDE_PARAM, {LV::SIDE_X, LV::SIDE_Y, S}}, {M::SIDE_PLAY_PARAM, {LV::SIDE_PLAY_X, LV::SIDE_PLAY_Y, B}},
-			{M::LOAD_PARAM, {LV::LOAD_X, LV::LOAD_Y, S}}, {M::AZIMUTH_PARAM, {LV::AZIMUTH_X, LV::AZIMUTH_Y, S}},
-			{M::VERT_PARAM, {LV::VERT_X, LV::VERT_Y, S}}, {M::OFFSET_PARAM, {LV::OFFSET_X, LV::OFFSET_Y, L}},
-			{M::VALVE_PARAM, {LV::VALVE_X, LV::VALVE_Y, L}}, {M::XFMR_PARAM, {LV::XFMR_X, LV::XFMR_Y, S}},
-			{M::HUM_PARAM, {LV::HUM_X, LV::HUM_Y, S}}, {M::DRIFT_PARAM, {LV::DRIFT_X, LV::DRIFT_Y, S}},
-			{M::SLOP_PARAM, {LV::SLOP_X, LV::SLOP_Y, S}}, {M::WOFFSET_PARAM, {LV::WOFFSET_X, LV::WOFFSET_Y, S}},
-			{M::XFADE_PARAM, {LV::XFADE_X, LV::XFADE_Y, S}}, {M::SYNC_PARAM, {LV::SYNC_X, LV::SYNC_Y, B}},
-			{M::BYPASS_PARAM, {LV::BYPASS_X, LV::BYPASS_Y, B}},
-		};
-		addChild(rg);
 	}
 
 	void appendContextMenu(Menu* menu) override {

@@ -112,7 +112,7 @@ vc += [
     ("out", "OUT_R", x[6], 118.0, "OUT R", None),
 ]
 
-# ---- Vinyl Countdown 2.2: 36 HP, eight sections, two assignable CVs ------
+# ---- Vinyl Countdown 2.6: 36 HP, eight sections ---------------------------
 # (vc above is the 2.1 layout; it is re-flowed into eight columns here)
 W36 = 36 * HP
 X8 = [(W36 - 8 * 21.6) / 2 + 10.8 + 21.6 * i for i in range(8)]
@@ -137,10 +137,10 @@ vm += [
     ("knobL", "VALVE", px, 36.0, "VALVE", None),
     ("knobS", "XFMR", px, 55.0, "STEP-UP", None),
     ("knobS", "HUM", px, 69.5, "HUM", None),
-    ("sw2", "HZ", px - 4.0, 79.5, "", ["50", "60", "<"]),
-    ("btn", "GND", px + 5.2, 79.0, "", None),
-    ("text", "GND_T", px + 5.2, 84.6, "GND", (2.9, "#A39C92")),
+    ("sw2", "HZ", px - 2.5, 79.5, "", ["50", "60"]),
 ]
+# 2.6.0: 33/45 only (78 removed)
+vm = [("sw2", "RPM", X8[5] - 3.0, 57.0, "RPM", ["33", "45"]) if it[1] == "RPM" else it for it in vm]
 A_COL, B_COL = "#E8B04A", "#7FB8A4"
 def cvblock(tag, c0, col):
     xs = X8[c0:c0 + 4]
@@ -151,7 +151,10 @@ def cvblock(tag, c0, col):
         ("knobS", f"{tag}_DEST", (xs[1] + xs[2]) / 2, 104.2, "DEST", None),
         ("knobS", f"{tag}_AMT", (xs[2] + xs[3]) / 2 + 4.0, 104.2, "AMOUNT", None),
     ]
-vm += cvblock("A", 0, A_COL) + cvblock("B", 4, B_COL)
+# 2.6.0: CV A/B removed (Haer doesn't use them); the sections stretch down
+# into the space they left
+STRETCH = (101.0 - 30.0) / (86.0 - 30.0)
+vm = [(k, i, xx, (30.0 + (y - 30.0) * STRETCH) if 30.0 < y < 90.0 else y, lab, ex) for (k, i, xx, y, lab, ex) in vm]
 bot = [("in", "IN_L", "IN L"), ("in", "IN_R", "IN R"), ("in", "B_L", "B L"), ("in", "B_R", "B R"),
        ("in", "CLOCK_IN", "CLOCK"), ("out", "WOW_OUT", "WOW"), ("out", "OUT_L", "OUT L"), ("out", "OUT_R", "OUT R")]
 for i, (k, ident, lab) in enumerate(bot):
@@ -160,12 +163,11 @@ vm += [
     ("text", "BYP_T", W36 - 21.5, 8.4, "BYPASS", (3.2, "#EFE8DA", "end")),
     ("btn", "BYPASS", W36 - 15.0, 7.2, "", None),
 ]
-MOCK_BOXES = [(X8[0] - 9.6, 86.2, X8[3] - X8[0] + 19.2, 22.2, A_COL),
-              (X8[4] - 9.6, 86.2, X8[7] - X8[4] + 19.2, 22.2, B_COL)]
+MOCK_BOXES = []
 
 MODULES = {
     "VinylCountdown": dict(hp=36, title="Vinyl Countdown", accent="#E8B04A", items=vm, columns=X8,
-                           title_y=8.4, title_size=3.6, logo=((X8[3] + X8[4]) / 2, 125.6), col_end=85.0,
+                           title_y=8.4, title_size=3.6, logo=((X8[3] + X8[4]) / 2, 125.6), col_end=106.0,
                            boxes=MOCK_BOXES, band=(109.5, 122.8)),
 }
 

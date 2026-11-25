@@ -11,12 +11,10 @@ Five modules, in the order a record travels:
 LATHE (hot cut DRIVE, ELLIPTIC mono bass, HF LIMIT, groove ECHO) -> RIAA cut curve ->
 PRESSING (GENERATION, WEAR) -> GROOVE (RADIUS, TRACK, SIDE + PLAY sweeps a whole side) ->
 STYLUS (TIP, LOAD, AZIMUTH, VERTICAL) -> PLATTER (off-centre OFFSET, RPM, BEATS) ->
-RIAA play curve -> PREAMP (VALVE drive, STEP-UP transformer, mains HUM 50/60 Hz, GND lift buzz) -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
+RIAA play curve -> PREAMP (VALVE drive, STEP-UP transformer, mains HUM 50/60 Hz) -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
 RADIUS drives both the inner-groove loss and the wow; DRIVE is the cut level for lathe and groove.
-Two assignable CV inputs: CV A and CV B each have a DEST knob (any knob, the PLAY and nudge
-triggers, or a BYPASS gate), an AMOUNT attenuverter and a screen; a dashed ring shows the target.
 BYPASS (top right) passes the dry input straight through, with no delay; Randomize leaves it alone.
-Right-click > Presets has 20 starting points.
+Right-click > Presets has 35 starting points. PLATTER plays 33 or 45 rpm.
 Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
 
 **Studio** (20 HP): before the lathe. CONSOLE (DRIVE, IRON transformer, XTALK) -> TAPE master
