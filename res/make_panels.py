@@ -162,6 +162,10 @@ for i, (k, ident, lab) in enumerate(bot):
 vm += [
     ("text", "BYP_T", W36 - 21.5, 8.4, "BYPASS", (3.2, "#EFE8DA", "end")),
     ("btn", "BYPASS", W36 - 15.0, 7.2, "", None),
+    # preset selector (mockup): < [ 07  name ] >
+    ("arrow", "PREV", W36 / 2 - 34.6, 6.8, "", "L"),
+    ("disp", "PRESET_DISP", W36 / 2 - 29.0, 4.0, "", (58.0, 5.6)),
+    ("arrow", "NEXT", W36 / 2 + 34.6, 6.8, "", "R"),
 ]
 MOCK_BOXES = []
 
@@ -389,7 +393,7 @@ def panel(name, m):
             anchor = extra[2] if len(extra) > 2 else "middle"
             add(text(label, x, y, size, FONT_BOLD, col, anchor=anchor))
             continue
-        if kind == "latch":
+        if kind in ("latch", "arrow"):
             continue
         if kind == "ring":
             add(f'<circle cx="{x}" cy="{y}" r="{extra[1]}" fill="none" stroke="{extra[0]}" stroke-width="0.7" stroke-dasharray="1.2 0.8"/>')

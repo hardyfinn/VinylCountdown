@@ -115,6 +115,8 @@ struct VinylModule : Module {
 	bool wreckBoth = false;
 	// for the screen
 	int dispCut = 0, dispPlay = 0;
+	// 2.7.0: preset selector on the panel (-1 = no preset loaded yet)
+	int presetIdx = -1;
 
 	VinylModule() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -186,6 +188,7 @@ struct VinylModule : Module {
 		lathe.reset(); riaa.reset(); pressing.reset(); groove.reset(); stylus.reset(); platter.reset(); wreck.reset(); preamp.reset();
 		bypassFade = 0.f;
 		sidePlaying = false; sideProgress = 0.f; movingCoil = false; wreckBoth = false;
+		presetIdx = -1;
 	}
 
 	bool on(int sec) { return params[secParam(sec)].getValue() > 0.5f; }
@@ -328,6 +331,7 @@ struct VinylModule : Module {
 		json_object_set_new(root, "wreckBoth", json_boolean(wreckBoth));
 		json_object_set_new(root, "sidePlaying", json_boolean(sidePlaying));
 		json_object_set_new(root, "sideProgress", json_real(sideProgress));
+		json_object_set_new(root, "presetIdx", json_integer(presetIdx));
 		return root;
 	}
 	void dataFromJson(json_t* root) override {
@@ -336,6 +340,8 @@ struct VinylModule : Module {
 		if ((j = json_object_get(root, "wreckBoth"))) wreckBoth = json_boolean_value(j);
 		if ((j = json_object_get(root, "sidePlaying"))) sidePlaying = json_boolean_value(j);
 		if ((j = json_object_get(root, "sideProgress"))) sideProgress = json_number_value(j);
+		presetIdx = -1;
+		if ((j = json_object_get(root, "presetIdx"))) presetIdx = (int) json_integer_value(j);
 	}
 };
 
@@ -385,6 +391,25 @@ static const Preset PRESETS[] = {
 };
 static const int NUM_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
 
+// params the presets never touch (buttons, bypass, the old CV A/B and ground lift)
+static bool presetSkips(int p) {
+	return p == VM::BYPASS_PARAM || p == VM::A_DEST_PARAM || p == VM::A_AMT_PARAM || p == VM::B_DEST_PARAM ||
+	       p == VM::B_AMT_PARAM || p == VM::GND_PARAM || p == VM::SIDE_PLAY_PARAM || p == VM::SYNC_PARAM;
+}
+// true once any knob/switch/option differs from what preset i set
+static bool presetChanged(VinylModule* m, int i) {
+	if (i < 0) return false;
+	const Preset& pr = PRESETS[i];
+	if (m->movingCoil != pr.movingCoil) return true;
+	for (int p = 0; p < VM::NUM_PARAMS; p++) {
+		if (presetSkips(p)) continue;
+		float want = m->paramQuantities[p]->getDefaultValue();
+		for (const PresetValue& v : pr.values)
+			if (v.param == p) want = v.value;
+		if (std::fabs(m->params[p].getValue() - want) > 1e-4f) return true;
+	}
+	return false;
+}
 static void applyPreset(VinylModule* m, int i) {
 	history::ModuleChange* h = new history::ModuleChange;
 	h->name = string::f("load preset %s", PRESETS[i].name);
@@ -400,6 +425,7 @@ static void applyPreset(VinylModule* m, int i) {
 	m->wreckBoth = false;
 	m->sidePlaying = false;
 	m->sideProgress = 0.f;
+	m->presetIdx = i;
 	h->newModuleJ = m->toJson();
 	APP->history->push(h);
 }
@@ -409,6 +435,52 @@ struct RiaaMini : VinylScreen {
 		int c = module ? module->dispCut : 0, p = module ? module->dispPlay : 1;
 		out.push_back(vinyl::CURVE_SHORT[c]);
 		out.push_back(std::string("> ") + vinyl::CURVE_SHORT[p]);
+	}
+};
+
+// the preset name screen at the top of the panel
+struct PresetScreen : VinylScreen {
+	VinylModule* module = nullptr;
+	void lines(std::vector<std::string>& out) override {
+		if (!module) { out.push_back("07  Wrong EQ: Columbia LP on RIAA"); return; }
+		int i = module->presetIdx;
+		if (i < 0 || i >= NUM_PRESETS) { out.push_back("-- PRESETS --"); return; }
+		out.push_back(string::f("%02d  %s%s", i + 1, PRESETS[i].name, presetChanged(module, i) ? " *" : ""));
+	}
+};
+// left / right arrow: steps through the presets (wraps round)
+struct PresetArrow : OpaqueWidget {
+	VinylModule* module = nullptr;
+	int dir = 1;
+	bool hover = false;
+	void draw(const DrawArgs& args) override {
+		float w = box.size.x, h = box.size.y;
+		nvgBeginPath(args.vg);
+		nvgRoundedRect(args.vg, 0.5f, 0.5f, w - 1.f, h - 1.f, mm2px(0.9f));
+		nvgFillColor(args.vg, hover ? nvgRGB(0x44, 0x3f, 0x3c) : nvgRGB(0x2b, 0x28, 0x26));
+		nvgFill(args.vg);
+		nvgStrokeColor(args.vg, nvgRGB(0, 0, 0));
+		nvgStrokeWidth(args.vg, 1.f);
+		nvgStroke(args.vg);
+		float cx = w / 2, cy = h / 2, a = mm2px(1.2f), b = mm2px(1.6f);
+		nvgBeginPath(args.vg);
+		nvgMoveTo(args.vg, cx + a * dir, cy);
+		nvgLineTo(args.vg, cx - a * dir, cy - b);
+		nvgLineTo(args.vg, cx - a * dir, cy + b);
+		nvgClosePath(args.vg);
+		nvgFillColor(args.vg, nvgRGB(0xEF, 0xE8, 0xDA));
+		nvgFill(args.vg);
+	}
+	void onEnter(const EnterEvent& e) override { hover = true; }
+	void onLeave(const LeaveEvent& e) override { hover = false; }
+	void onButton(const ButtonEvent& e) override {
+		OpaqueWidget::onButton(e);
+		if (!module || e.action != GLFW_PRESS || e.button != GLFW_MOUSE_BUTTON_LEFT) return;
+		int i = module->presetIdx;
+		if (i < 0) i = dir > 0 ? 0 : NUM_PRESETS - 1;
+		else i = (i + dir + NUM_PRESETS) % NUM_PRESETS;
+		applyPreset(module, i);
+		e.consume(this);
 	}
 };
 
@@ -477,6 +549,22 @@ struct VinylWidget : ModuleWidget {
 		addChild(createLightCentered<SmallLight<RedLight>>(P(LV::NUDGE_LIGHT_X, LV::NUDGE_LIGHT_Y), module, M::NUDGE_LIGHT));
 
 		addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<RedLight>>>(P(LV::BYPASS_X, LV::BYPASS_Y), module, M::BYPASS_PARAM, M::BYPASS_LIGHT));
+
+		// preset selector:  < [ 07  name ] >
+		PresetScreen* ps = createWidget<PresetScreen>(P(LV::PRESET_DISP_X, LV::PRESET_DISP_Y));
+		ps->box.size = mm2px(Vec(LV::PRESET_DISP_W, LV::PRESET_DISP_H));
+		ps->module = module;
+		ps->fontMm = 2.9f;
+		addChild(ps);
+		const float ax[2] = {LV::PREV_X, LV::NEXT_X}, ay[2] = {LV::PREV_Y, LV::NEXT_Y};
+		for (int k = 0; k < 2; k++) {
+			PresetArrow* a = new PresetArrow;
+			a->box.size = mm2px(Vec(6.0f, 5.6f));
+			a->box.pos = P(ax[k], ay[k]).minus(a->box.size.div(2));
+			a->module = module;
+			a->dir = k == 0 ? -1 : 1;
+			addChild(a);
+		}
 
 		struct J { float x, y; int id; bool out; };
 		const J jacks[] = {

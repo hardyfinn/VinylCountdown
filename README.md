@@ -14,7 +14,7 @@ STYLUS (TIP, LOAD, AZIMUTH, VERTICAL) -> PLATTER (off-centre OFFSET, RPM, BEATS)
 RIAA play curve -> PREAMP (VALVE drive, STEP-UP transformer, mains HUM 50/60 Hz) -> WRECK (deck B drifts and gets nudged; B is the dry input unless patched).
 RADIUS drives both the inner-groove loss and the wow; DRIVE is the cut level for lathe and groove.
 BYPASS (top right) passes the dry input straight through, with no delay; Randomize leaves it alone.
-Right-click > Presets has 35 starting points. PLATTER plays 33 or 45 rpm.
+Pick a preset with the arrows either side of the screen at the top (or right-click > Presets); 35 starting points, wrapping round. A * after the name means you have changed something since loading it. PLATTER plays 33 or 45 rpm.
 Latency: 0, plus 6 ms with PLATTER on, plus up to 100 ms on deck B in WRECK.
 
 **Studio** (20 HP): before the lathe. CONSOLE (DRIVE, IRON transformer, XTALK) -> TAPE master

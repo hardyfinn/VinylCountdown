@@ -41,6 +41,10 @@ for name, m in mp.MODULES.items():
         elif kind == "sw2": comp(g, "CKSS_0", x, y)
         elif kind == "sw3": comp(g, "CKSSThree_1", x, y)
         elif kind == "btn": comp(g, "VCVButton_0", x, y)
+        elif kind == "arrow":
+            d = -1 if extra == "L" else 1
+            g.append(f'<rect x="{x - 3.0}" y="{y - 2.8}" width="6.0" height="5.6" rx="0.9" fill="#2b2826" stroke="#000" stroke-width="0.3"/>')
+            g.append(f'<path d="M{x + 1.3 * d} {y} L{x - 1.1 * d} {y - 1.6} L{x - 1.1 * d} {y + 1.6} Z" fill="#EFE8DA"/>')
         elif kind == "latch":
             g.append(f'<circle cx="{x}" cy="{y}" r="2.0" fill="#2b2b2b" stroke="#000" stroke-width="0.3"/><circle cx="{x}" cy="{y}" r="1.2" fill="#f0e6c8" fill-opacity="0.9"/>')
         elif kind in ("in", "out"): comp(g, "PJ301M", x, y)
@@ -52,6 +56,8 @@ for name, m in mp.MODULES.items():
                 lines = [demo[name][0 if ident == "A_DISP" else 1]]
             elif ident == "FREQ_DISP":
                 lines = ["FM 97.60", "SIG ||||  STEREO"]
+            elif ident == "PRESET_DISP":
+                lines = ["07  Wrong EQ: Columbia LP on RIAA"]
             elif ident == "SPK_DISP":
                 lines = ["BOOKSHELF", "HI-FI"]
             else:

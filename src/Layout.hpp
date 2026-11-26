@@ -66,6 +66,10 @@ static const float OUT_L_X = 145.440f, OUT_L_Y = 118.000f;
 static const float OUT_R_X = 167.040f, OUT_R_Y = 118.000f;
 static const float BYP_T_X = 161.380f, BYP_T_Y = 8.400f;
 static const float BYPASS_X = 167.880f, BYPASS_Y = 7.200f;
+static const float PREV_X = 56.840f, PREV_Y = 6.800f;
+static const float PRESET_DISP_X = 62.440f, PRESET_DISP_Y = 4.000f;
+static const float PRESET_DISP_W = 58.000f, PRESET_DISP_H = 5.600f;
+static const float NEXT_X = 126.040f, NEXT_Y = 6.800f;
 }
 namespace Scratch {
 static const float WIDTH = 121.92f;
